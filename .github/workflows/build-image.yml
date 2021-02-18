@@ -36,7 +36,8 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         file: ./build/dockerfiles/Dockerfile
-        platforms: linux/amd64,linux/ppc64le,linux/s390x
+        # go compiler segfaults on linux/s390x so leaving that out for now
+        platforms: linux/amd64,linux/ppc64le
         push: true
         tags: quay.io/che-incubator/devworkspace-che-operator:latest
     -
