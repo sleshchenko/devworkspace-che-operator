@@ -106,6 +106,15 @@ func (r *CheReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *CheReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 
+	managerAccess.Lock()
+	defer managerAccess.Unlock()
+
+	// remove the manager from the shared map for the time of the reconciliation
+	// we'll add it back if it is successfully reconciled.
+	// The access to the map is locked for the time of reconciliation so that outside
+	// callers don't witness this intermediate state.
+	delete(currentManagers, req.NamespacedName)
+
 	// make sure we've checked we're in a valid state
 	current := &v1alpha1.CheManager{}
 	err := r.client.Get(ctx, req.NamespacedName, current)
@@ -131,15 +140,14 @@ func (r *CheReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	res, err := r.updateStatus(ctx, current, changed, host)
 
-	if err == nil {
-		// update the shared map
-		managerAccess.Lock()
-		defer managerAccess.Unlock()
-
-		currentManagers[req.NamespacedName] = *current
+	if err != nil {
+		return res, err
 	}
 
-	return res, err
+	// everything went fine and the manager exists, put it back in the shared map
+	currentManagers[req.NamespacedName] = *current
+
+	return res, nil
 }
 
 func (r *CheReconciler) updateStatus(ctx context.Context, manager *v1alpha1.CheManager, changed bool, host string) (ctrl.Result, error) {

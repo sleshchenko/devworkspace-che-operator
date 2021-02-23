@@ -232,3 +232,243 @@ func TestDeletesObjectsInMultiHost(t *testing.T) {
 
 	gateway.TestGatewayObjectsDontExist(t, ctx, cl, managerName, ns)
 }
+
+func TestNoManagerSharedWhenReconcilingNonExistent(t *testing.T) {
+	// clear the map before the test
+	for k := range currentManagers {
+		delete(currentManagers, k)
+	}
+
+	managerName := "che"
+	ns := "default"
+	scheme := createTestScheme()
+	cl := fake.NewFakeClientWithScheme(scheme)
+
+	ctx := context.TODO()
+
+	reconciler := CheReconciler{client: cl, scheme: scheme, gateway: gateway.New(cl, scheme), syncer: sync.New(cl, scheme)}
+
+	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	if err != nil {
+		t.Fatalf("Failed to reconcile che manager with error: %s", err)
+	}
+
+	// there is nothing in our context, so the map should still be empty
+	managers := GetCurrentManagers()
+	if len(managers) != 0 {
+		t.Fatalf("There should have been no managers after a reconcile of a non-existent manager.")
+	}
+
+	// now add some manager and reconcile a non-existent one
+	cl.Create(ctx, &v1alpha1.CheManager{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      managerName + "-not-me",
+			Namespace: ns,
+		},
+		Spec: v1alpha1.CheManagerSpec{
+			Host:    "over.the.rainbow",
+			Routing: v1alpha1.MultiHost,
+		},
+	})
+
+	_, err = reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	if err != nil {
+		t.Fatalf("Failed to reconcile che manager with error: %s", err)
+	}
+
+	managers = GetCurrentManagers()
+	if len(managers) != 0 {
+		t.Fatalf("There should have been no managers after a reconcile of a non-existent manager.")
+	}
+}
+
+func TestAddsManagerToSharedMapOnCreate(t *testing.T) {
+	// clear the map before the test
+	for k := range currentManagers {
+		delete(currentManagers, k)
+	}
+
+	managerName := "che"
+	ns := "default"
+	scheme := createTestScheme()
+	cl := fake.NewFakeClientWithScheme(scheme, &v1alpha1.CheManager{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      managerName,
+			Namespace: ns,
+		},
+		Spec: v1alpha1.CheManagerSpec{
+			Host:    "over.the.rainbow",
+			Routing: v1alpha1.MultiHost,
+		},
+	})
+
+	reconciler := CheReconciler{client: cl, scheme: scheme, gateway: gateway.New(cl, scheme), syncer: sync.New(cl, scheme)}
+
+	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	if err != nil {
+		t.Fatalf("Failed to reconcile che manager with error: %s", err)
+	}
+
+	managers := GetCurrentManagers()
+	if len(managers) != 1 {
+		t.Fatalf("There should have been exactly 1 manager after a reconcile but there is %d.", len(managers))
+	}
+
+	mgr, ok := managers[types.NamespacedName{Name: managerName, Namespace: ns}]
+	if !ok {
+		t.Fatalf("The map of the current managers doesn't contain the expected one.")
+	}
+
+	if mgr.Name != managerName {
+		t.Fatalf("Found a manager that we didn't reconcile. Curious (and buggy). We found %s but should have found %s", mgr.Name, managerName)
+	}
+}
+
+func TestUpdatesManagerInSharedMapOnUpdate(t *testing.T) {
+	// clear the map before the test
+	for k := range currentManagers {
+		delete(currentManagers, k)
+	}
+
+	managerName := "che"
+	ns := "default"
+	scheme := createTestScheme()
+
+	cl := fake.NewFakeClientWithScheme(scheme, &v1alpha1.CheManager{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      managerName,
+			Namespace: ns,
+		},
+		Spec: v1alpha1.CheManagerSpec{
+			Host:    "over.the.rainbow",
+			Routing: v1alpha1.MultiHost,
+		},
+	})
+
+	reconciler := CheReconciler{client: cl, scheme: scheme, gateway: gateway.New(cl, scheme), syncer: sync.New(cl, scheme)}
+
+	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	if err != nil {
+		t.Fatalf("Failed to reconcile che manager with error: %s", err)
+	}
+
+	managers := GetCurrentManagers()
+	if len(managers) != 1 {
+		t.Fatalf("There should have been exactly 1 manager after a reconcile but there is %d.", len(managers))
+	}
+
+	mgr, ok := managers[types.NamespacedName{Name: managerName, Namespace: ns}]
+	if !ok {
+		t.Fatalf("The map of the current managers doesn't contain the expected one.")
+	}
+
+	if mgr.Name != managerName {
+		t.Fatalf("Found a manager that we didn't reconcile. Curious (and buggy). We found %s but should have found %s", mgr.Name, managerName)
+	}
+
+	if mgr.Spec.Host != "over.the.rainbow" {
+		t.Fatalf("Unexpected host value: expected: over.the.rainbow, actual: %s", mgr.Spec.Host)
+	}
+
+	// now update the manager and reconcile again. See that the map contains the updated value
+	mgr = *mgr.DeepCopy()
+	mgr.Spec.Host = "over.the.shoulder"
+	err = cl.Update(context.TODO(), &mgr)
+	if err != nil {
+		t.Fatalf("Failed to update. Wat? %s", err)
+	}
+
+	// before the reconcile, the map still should containe the old value
+	managers = GetCurrentManagers()
+	mgr, ok = managers[types.NamespacedName{Name: managerName, Namespace: ns}]
+	if !ok {
+		t.Fatalf("The map of the current managers doesn't contain the expected one.")
+	}
+
+	if mgr.Name != managerName {
+		t.Fatalf("Found a manager that we didn't reconcile. Curious (and buggy). We found %s but should have found %s", mgr.Name, managerName)
+	}
+
+	if mgr.Spec.Host != "over.the.rainbow" {
+		t.Fatalf("Unexpected host value: expected: over.the.rainbow, actual: %s", mgr.Spec.Host)
+	}
+
+	// now reconcile and see that the value in the map is now updated
+
+	_, err = reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	if err != nil {
+		t.Fatalf("Failed to reconcile che manager with error: %s", err)
+	}
+
+	managers = GetCurrentManagers()
+	mgr, ok = managers[types.NamespacedName{Name: managerName, Namespace: ns}]
+	if !ok {
+		t.Fatalf("The map of the current managers doesn't contain the expected one.")
+	}
+
+	if mgr.Name != managerName {
+		t.Fatalf("Found a manager that we didn't reconcile. Curious (and buggy). We found %s but should have found %s", mgr.Name, managerName)
+	}
+
+	if mgr.Spec.Host != "over.the.shoulder" {
+		t.Fatalf("Unexpected host value: expected: over.the.shoulder, actual: %s", mgr.Spec.Host)
+	}
+}
+
+func TestRemovesManagerFromSharedMapOnDelete(t *testing.T) {
+	// clear the map before the test
+	for k := range currentManagers {
+		delete(currentManagers, k)
+	}
+
+	managerName := "che"
+	ns := "default"
+	scheme := createTestScheme()
+
+	cl := fake.NewFakeClientWithScheme(scheme, &v1alpha1.CheManager{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      managerName,
+			Namespace: ns,
+		},
+		Spec: v1alpha1.CheManagerSpec{
+			Host:    "over.the.rainbow",
+			Routing: v1alpha1.MultiHost,
+		},
+	})
+
+	reconciler := CheReconciler{client: cl, scheme: scheme, gateway: gateway.New(cl, scheme), syncer: sync.New(cl, scheme)}
+
+	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	if err != nil {
+		t.Fatalf("Failed to reconcile che manager with error: %s", err)
+	}
+
+	managers := GetCurrentManagers()
+	if len(managers) != 1 {
+		t.Fatalf("There should have been exactly 1 manager after a reconcile but there is %d.", len(managers))
+	}
+
+	mgr, ok := managers[types.NamespacedName{Name: managerName, Namespace: ns}]
+	if !ok {
+		t.Fatalf("The map of the current managers doesn't contain the expected one.")
+	}
+
+	if mgr.Name != managerName {
+		t.Fatalf("Found a manager that we didn't reconcile. Curious (and buggy). We found %s but should have found %s", mgr.Name, managerName)
+	}
+
+	cl.Delete(context.TODO(), &mgr)
+
+	// now reconcile and see that the value is no longer in the map
+
+	_, err = reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	if err != nil {
+		t.Fatalf("Failed to reconcile che manager with error: %s", err)
+	}
+
+	managers = GetCurrentManagers()
+	_, ok = managers[types.NamespacedName{Name: managerName, Namespace: ns}]
+	if ok {
+		t.Fatalf("The map of the current managers should no longer contain the manager after it has been deleted.")
+	}
+}
