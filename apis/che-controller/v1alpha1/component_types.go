@@ -55,10 +55,27 @@ const (
 	GatewayPhaseInactive     = "Inactive"
 )
 
+type ManagerPhase string
+
+const (
+	ManagerPhaseActive          = "Active"
+	ManagerPhasePendingDeletion = "PendingDeletion"
+)
+
 // +k8s:openapi-gen=true
 type CheManagerStatus struct {
+	// GatewayPhase specifies the phase in which the singlehost gateway deployment currently is.
+	// If the manager routing is not singlehost, this is "Inactive"
 	GatewayPhase GatewayPhase `json:"gatewayPhase,omitempty"`
-	GatewayHost  string       `json:"gatewayHost,omitempty"`
+
+	// GatewayHost is the resolved host of the ingress/route, on which the gateway is accessible.
+	GatewayHost string `json:"gatewayHost,omitempty"`
+
+	// Phase is the phase in which the manager as a whole finds itself in.
+	Phase ManagerPhase `json:"phase,omitempty"`
+
+	// Message contains further human-readable info for why the manager is in the phase it currently is.
+	Message string `json:"omitempty"`
 }
 
 // CheManager is the configuration of the CheManager layer of Devworkspace.
