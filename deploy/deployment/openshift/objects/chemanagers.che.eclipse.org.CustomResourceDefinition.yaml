@@ -49,9 +49,19 @@ spec:
           status:
             properties:
               gatewayHost:
+                description: GatewayHost is the resolved host of the ingress/route, on which the gateway is accessible.
                 type: string
               gatewayPhase:
+                description: GatewayPhase specifies the phase in which the singlehost gateway deployment currently is. If the manager routing is not singlehost, this is "Inactive"
                 type: string
+              omitempty:
+                description: Message contains further human-readable info for why the manager is in the phase it currently is.
+                type: string
+              phase:
+                description: Phase is the phase in which the manager as a whole finds itself in.
+                type: string
+            required:
+            - omitempty
             type: object
         type: object
     served: true

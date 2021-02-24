@@ -14,6 +14,7 @@ package manager
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
@@ -35,6 +36,11 @@ var (
 	log             = ctrl.Log.WithName("che")
 	currentManagers = map[client.ObjectKey]v1alpha1.CheManager{}
 	managerAccess   = sync.Mutex{}
+)
+
+const (
+	// FinalizerName is the name of the finalizer put on the Che Manager resources by the controller. Public for testing purposes.
+	FinalizerName = "chemanager.che.eclipse.org"
 )
 
 type CheReconciler struct {
@@ -128,7 +134,17 @@ func (r *CheReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if current.GetDeletionTimestamp() != nil {
-		return ctrl.Result{}, r.finalize(current)
+		return ctrl.Result{}, r.finalize(ctx, current)
+	}
+
+	finalizerUpdated, err := r.ensureFinalizer(ctx, current)
+	if err != nil {
+		log.Info("Failed to set a finalizer on %s", req.String())
+		return ctrl.Result{}, err
+	} else if finalizerUpdated {
+		// we've updated the object with a new finalizer, so we will enter another reconciliation loop shortly
+		// we don't add the manager into the shared map just yet, because we have actually not reconciled it fully.
+		return ctrl.Result{}, nil
 	}
 
 	var changed bool
@@ -164,6 +180,10 @@ func (r *CheReconciler) updateStatus(ctx context.Context, manager *v1alpha1.CheM
 
 	manager.Status.GatewayHost = host
 
+	// set this unconditionally, because the only other value is set using the finalizer
+	manager.Status.Phase = v1alpha1.ManagerPhaseActive
+	manager.Status.Message = ""
+
 	if currentPhase != manager.Status.GatewayPhase || currentHost != manager.Status.GatewayHost {
 		return ctrl.Result{Requeue: true}, r.client.Status().Update(ctx, manager)
 	}
@@ -171,9 +191,31 @@ func (r *CheReconciler) updateStatus(ctx context.Context, manager *v1alpha1.CheM
 	return ctrl.Result{Requeue: currentPhase == v1alpha1.GatewayPhaseInitializing}, nil
 }
 
-func (r *CheReconciler) finalize(router *v1alpha1.CheManager) error {
-	// implement if needed
-	return nil
+func (r *CheReconciler) finalize(ctx context.Context, manager *v1alpha1.CheManager) (err error) {
+	if manager.Spec.Routing == v1alpha1.SingleHost {
+		err = r.singlehostFinalize(ctx, manager)
+	} else {
+		err = r.multihostFinalize(ctx, manager)
+	}
+
+	if err == nil {
+		finalizers := []string{}
+		for i := range manager.Finalizers {
+			if manager.Finalizers[i] != FinalizerName {
+				finalizers = append(finalizers, manager.Finalizers[i])
+			}
+		}
+
+		manager.Finalizers = finalizers
+
+		err = r.client.Update(ctx, manager)
+	} else {
+		manager.Status.Phase = v1alpha1.ManagerPhasePendingDeletion
+		manager.Status.Message = fmt.Sprintf("Finalization has failed: %s", err.Error())
+		err = r.client.Status().Update(ctx, manager)
+	}
+
+	return err
 }
 
 func (r *CheReconciler) reconcileGateway(ctx context.Context, manager *v1alpha1.CheManager) (bool, string, error) {
@@ -188,4 +230,24 @@ func (r *CheReconciler) reconcileGateway(ctx context.Context, manager *v1alpha1.
 	}
 
 	return changed, host, err
+}
+
+func (r *CheReconciler) ensureFinalizer(ctx context.Context, manager *v1alpha1.CheManager) (updated bool, err error) {
+
+	needsUpdate := true
+	if manager.Finalizers != nil {
+		for i := range manager.Finalizers {
+			if manager.Finalizers[i] == FinalizerName {
+				needsUpdate = false
+				break
+			}
+		}
+	}
+
+	if needsUpdate {
+		manager.Finalizers = append(manager.Finalizers, FinalizerName)
+		err = r.client.Update(ctx, manager)
+	}
+
+	return needsUpdate, err
 }

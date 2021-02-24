@@ -113,6 +113,12 @@ rules:
   - patch
   - update
 - apiGroups:
+  - che.eclipse.org
+  resources:
+  - chemanagers/finalizers
+  verbs:
+  - update
+- apiGroups:
   - controller.devfile.io
   resources:
   - workspaceroutings

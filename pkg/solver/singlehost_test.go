@@ -42,8 +42,9 @@ func getSpecObjects(t *testing.T, routing *dwo.WorkspaceRouting) (client.Client,
 	scheme := createTestScheme()
 	cheManager := &v1alpha1.CheManager{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "che",
-			Namespace: "ns",
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{manager.FinalizerName},
 		},
 		Spec: v1alpha1.CheManagerSpec{
 			Host:    "over.the.rainbow",
