@@ -92,8 +92,10 @@ func (g *CheGateway) reconcileRoute(syncer sync.Syncer, ctx context.Context, man
 		var inCluster runtime.Object
 
 		changed, inCluster, err = syncer.Sync(ctx, manager, route, diffOpts)
+		if err != nil {
+			return changed, "", err
+		}
 		routeHost = inCluster.(*routev1.Route).Spec.Host
-
 	}
 
 	return changed, routeHost, err
