@@ -39,7 +39,8 @@ var (
 )
 
 const (
-	finalizerName = "chemanager.che.eclipse.org"
+	// FinalizerName is the name of the finalizer put on the Che Manager resources by the controller. Public for testing purposes.
+	FinalizerName = "chemanager.che.eclipse.org"
 )
 
 type CheReconciler struct {
@@ -200,7 +201,7 @@ func (r *CheReconciler) finalize(ctx context.Context, manager *v1alpha1.CheManag
 	if err == nil {
 		finalizers := []string{}
 		for i := range manager.Finalizers {
-			if manager.Finalizers[i] != finalizerName {
+			if manager.Finalizers[i] != FinalizerName {
 				finalizers = append(finalizers, manager.Finalizers[i])
 			}
 		}
@@ -236,7 +237,7 @@ func (r *CheReconciler) ensureFinalizer(ctx context.Context, manager *v1alpha1.C
 	needsUpdate := true
 	if manager.Finalizers != nil {
 		for i := range manager.Finalizers {
-			if manager.Finalizers[i] == finalizerName {
+			if manager.Finalizers[i] == FinalizerName {
 				needsUpdate = false
 				break
 			}
@@ -244,7 +245,7 @@ func (r *CheReconciler) ensureFinalizer(ctx context.Context, manager *v1alpha1.C
 	}
 
 	if needsUpdate {
-		manager.Finalizers = append(manager.Finalizers, finalizerName)
+		manager.Finalizers = append(manager.Finalizers, FinalizerName)
 		err = r.client.Update(ctx, manager)
 	}
 

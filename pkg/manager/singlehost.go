@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
@@ -16,7 +17,10 @@ func (r *CheReconciler) singlehostFinalize(ctx context.Context, manager *v1alpha
 	// we detect that by the presence of the gateway configmaps in the namespace of the manager
 	list := corev1.ConfigMapList{}
 
-	err := r.client.List(ctx, &list, &client.ListOptions{Namespace: manager.Namespace})
+	err := r.client.List(ctx, &list, &client.ListOptions{
+		Namespace:     manager.Namespace,
+		LabelSelector: labels.SelectorFromSet(defaults.GetLabelsForComponent(manager, "gateway-config")),
+	})
 	if err != nil {
 		return err
 	}

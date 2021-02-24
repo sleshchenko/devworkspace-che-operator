@@ -51,7 +51,12 @@ func TestCreatesObjectsInSingleHost(t *testing.T) {
 
 	reconciler := CheReconciler{client: cl, scheme: scheme, gateway: gateway.New(cl, scheme), syncer: sync.New(cl, scheme)}
 
+	// first reconcile sets the finalizer, second reconcile actually finishes the process
 	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
+	if err != nil {
+		t.Fatalf("Failed to reconcile che manager with error: %s", err)
+	}
+	_, err = reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: managerName, Namespace: ns}})
 	if err != nil {
 		t.Fatalf("Failed to reconcile che manager with error: %s", err)
 	}
@@ -108,8 +113,9 @@ func TestUpdatesObjectsInSingleHost(t *testing.T) {
 		},
 		&v1alpha1.CheManager{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      managerName,
-				Namespace: ns,
+				Name:       managerName,
+				Namespace:  ns,
+				Finalizers: []string{FinalizerName},
 			},
 			Spec: v1alpha1.CheManagerSpec{
 				Host:    "over.the.rainbow",
@@ -149,8 +155,9 @@ func TestDoesntCreateObjectsInMultiHost(t *testing.T) {
 	ctx := context.TODO()
 	cl := fake.NewFakeClientWithScheme(scheme, &v1alpha1.CheManager{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      managerName,
-			Namespace: ns,
+			Name:       managerName,
+			Namespace:  ns,
+			Finalizers: []string{FinalizerName},
 		},
 		Spec: v1alpha1.CheManagerSpec{
 			Host:    "over.the.rainbow",
@@ -213,8 +220,9 @@ func TestDeletesObjectsInMultiHost(t *testing.T) {
 		},
 		&v1alpha1.CheManager{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      managerName,
-				Namespace: ns,
+				Name:       managerName,
+				Namespace:  ns,
+				Finalizers: []string{FinalizerName},
 			},
 			Spec: v1alpha1.CheManagerSpec{
 				Host:    "over.the.rainbow",
@@ -263,8 +271,9 @@ func TestNoManagerSharedWhenReconcilingNonExistent(t *testing.T) {
 	// now add some manager and reconcile a non-existent one
 	cl.Create(ctx, &v1alpha1.CheManager{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      managerName + "-not-me",
-			Namespace: ns,
+			Name:       managerName + "-not-me",
+			Namespace:  ns,
+			Finalizers: []string{FinalizerName},
 		},
 		Spec: v1alpha1.CheManagerSpec{
 			Host:    "over.the.rainbow",
@@ -294,8 +303,9 @@ func TestAddsManagerToSharedMapOnCreate(t *testing.T) {
 	scheme := createTestScheme()
 	cl := fake.NewFakeClientWithScheme(scheme, &v1alpha1.CheManager{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      managerName,
-			Namespace: ns,
+			Name:       managerName,
+			Namespace:  ns,
+			Finalizers: []string{FinalizerName},
 		},
 		Spec: v1alpha1.CheManagerSpec{
 			Host:    "over.the.rainbow",
@@ -337,8 +347,9 @@ func TestUpdatesManagerInSharedMapOnUpdate(t *testing.T) {
 
 	cl := fake.NewFakeClientWithScheme(scheme, &v1alpha1.CheManager{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      managerName,
-			Namespace: ns,
+			Name:       managerName,
+			Namespace:  ns,
+			Finalizers: []string{FinalizerName},
 		},
 		Spec: v1alpha1.CheManagerSpec{
 			Host:    "over.the.rainbow",
@@ -428,8 +439,9 @@ func TestRemovesManagerFromSharedMapOnDelete(t *testing.T) {
 
 	cl := fake.NewFakeClientWithScheme(scheme, &v1alpha1.CheManager{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      managerName,
-			Namespace: ns,
+			Name:       managerName,
+			Namespace:  ns,
+			Finalizers: []string{FinalizerName},
 		},
 		Spec: v1alpha1.CheManagerSpec{
 			Host:    "over.the.rainbow",
@@ -482,8 +494,9 @@ func TestManagerFinalization(t *testing.T) {
 	cl := fake.NewFakeClientWithScheme(scheme,
 		&v1alpha1.CheManager{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      managerName,
-				Namespace: ns,
+				Name:       managerName,
+				Namespace:  ns,
+				Finalizers: []string{FinalizerName},
 			},
 			Spec: v1alpha1.CheManagerSpec{
 				Host:    "over.the.rainbow",
@@ -498,6 +511,7 @@ func TestManagerFinalization(t *testing.T) {
 					defaults.ConfigAnnotationCheManagerName:      managerName,
 					defaults.ConfigAnnotationCheManagerNamespace: ns,
 				},
+				Labels: defaults.GetLabelsFromNames(managerName, "gateway-config"),
 			},
 		})
 
@@ -519,8 +533,8 @@ func TestManagerFinalization(t *testing.T) {
 		t.Fatalf("Expected a single finalizer on the manager but found: %d", len(manager.Finalizers))
 	}
 
-	if manager.Finalizers[0] != finalizerName {
-		t.Fatalf("Expected a finalizer called %s but got %s", finalizerName, manager.Finalizers[0])
+	if manager.Finalizers[0] != FinalizerName {
+		t.Fatalf("Expected a finalizer called %s but got %s", FinalizerName, manager.Finalizers[0])
 	}
 
 	// try to delete the manager and check that the configmap disallows that and that the status of the manager is updated
@@ -541,7 +555,7 @@ func TestManagerFinalization(t *testing.T) {
 	}
 
 	if len(manager.Finalizers) != 1 {
-		t.Fatalf("There should have be a finalizer on the manager after a failed finalization attempt")
+		t.Fatalf("There should have been a finalizer on the manager after a failed finalization attempt")
 	}
 
 	if manager.Status.Phase != v1alpha1.ManagerPhasePendingDeletion {
