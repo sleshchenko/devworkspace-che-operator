@@ -44,22 +44,26 @@ spec:
                   variable of the che operator deployment/pod. If not defined there
                   it defaults to a hardcoded value.
                 type: string
+              gatewayDisabled:
+                description: GatewayDisabled enables or disables routing of the relocatable
+                  workspace compontents through a common gateway. Default value is
+                  "false" meaning that the gateway is enabled. If disabled, all endpoints
+                  are deployed on a subdomain of a WorkspaceComponentBaseDomain. If
+                  enabled, components marked as relocatable are exposed on a unique
+                  subpath of the the GatewayHost, while the rest of the workspace
+                  components are exposed on subdomains of the WorkspaceComponentBaseDomain.
+                type: boolean
+              gatewayHost:
+                description: GatewayHost is the full host name used to expose workspace
+                  endpoints that have relocatable roots. Mandatory on Kubernetes,
+                  optional on OpenShift.
+                type: string
               gatewayImage:
                 description: GatewayImage is the docker image to use for the Che gateway.  This
                   is only used in the singlehost mode. If not defined in the CR, it
                   is taken from the `RELATED_IMAGE_gateway` environment variable of
                   the che operator deployment/pod. If not defined there it defaults
                   to a hardcoded value.
-                type: string
-              host:
-                description: The hostname to use for creating the workspace endpoints
-                  This is used as a full hostname in the singlehost mode. In the multihost
-                  mode, the individual endpoints are exposed on subdomains of the
-                  specified host.
-                type: string
-              routing:
-                description: Routing defines how the Che Router exposes the workspaces
-                  and components within
                 type: string
             type: object
           status:
@@ -73,7 +77,7 @@ spec:
                   gateway deployment currently is. If the manager routing is not singlehost,
                   this is "Inactive"
                 type: string
-              omitempty:
+              message:
                 description: Message contains further human-readable info for why
                   the manager is in the phase it currently is.
                 type: string
@@ -81,8 +85,6 @@ spec:
                 description: Phase is the phase in which the manager as a whole finds
                   itself in.
                 type: string
-            required:
-            - omitempty
             type: object
         type: object
     served: true

@@ -16,23 +16,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type RoutingType string
-
-const (
-	SingleHost RoutingType = "singlehost"
-	MultiHost  RoutingType = "multihost"
-)
-
 // CheManagerSpec holds the configuration of the Che controller.
 // +k8s:openapi-gen=true
 type CheManagerSpec struct {
-	// The hostname to use for creating the workspace endpoints
-	// This is used as a full hostname in the singlehost mode. In the multihost mode, the individual
-	// endpoints are exposed on subdomains of the specified host.
-	Host string `json:"host,omitempty"`
+	// GatewayHost is the full host name used to expose workspace endpoints that have relocatable roots.
+	// Mandatory on Kubernetes, optional on OpenShift.
+	GatewayHost string `json:"gatewayHost,omitempty"`
 
-	// Routing defines how the Che Router exposes the workspaces and components within
-	Routing RoutingType `json:"routing,omitempty"`
+	// GatewayDisabled enables or disables routing of the relocatable workspace compontents through a common gateway.
+	// Default value is "false" meaning that the gateway is enabled.
+	// If disabled, all endpoints are deployed on a subdomain of a WorkspaceComponentBaseDomain. If enabled, components marked
+	// as relocatable are exposed on a unique subpath of the the GatewayHost, while the rest of the workspace components are
+	// exposed on subdomains of the WorkspaceComponentBaseDomain.
+	GatewayDisabled bool `json:"gatewayDisabled,omitempty"`
 
 	// GatewayImage is the docker image to use for the Che gateway.  This is only used in
 	// the singlehost mode. If not defined in the CR, it is taken from
@@ -59,6 +55,7 @@ type ManagerPhase string
 
 const (
 	ManagerPhaseActive          = "Active"
+	ManagerPhaseInactive        = "Inactive"
 	ManagerPhasePendingDeletion = "PendingDeletion"
 )
 
@@ -75,7 +72,7 @@ type CheManagerStatus struct {
 	Phase ManagerPhase `json:"phase,omitempty"`
 
 	// Message contains further human-readable info for why the manager is in the phase it currently is.
-	Message string `json:"omitempty"`
+	Message string `json:"message,omitempty"`
 }
 
 // CheManager is the configuration of the CheManager layer of Devworkspace.

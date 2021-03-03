@@ -14,6 +14,7 @@ package manager
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 	"sync"
 
@@ -147,14 +148,27 @@ func (r *CheReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
+	// validate the CR
+	err = r.validate(current)
+	if err != nil {
+		log.Info("validation errors", "errors", err.Error())
+		res, err := r.updateStatus(ctx, current, nil, "", v1alpha1.ManagerPhaseInactive, err.Error())
+		if err != nil {
+			return res, err
+		}
+
+		return res, nil
+	}
+
+	// now, finally, the actual reconciliation
 	var changed bool
 	var host string
 
-	if changed, host, err = r.reconcileGateway(ctx, current); err != nil {
+	if changed, host, err = r.gatewayReconcile(ctx, current); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	res, err := r.updateStatus(ctx, current, changed, host)
+	res, err := r.updateStatus(ctx, current, &changed, host, v1alpha1.ManagerPhaseActive, "")
 
 	if err != nil {
 		return res, err
@@ -166,37 +180,58 @@ func (r *CheReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return res, nil
 }
 
-func (r *CheReconciler) updateStatus(ctx context.Context, manager *v1alpha1.CheManager, changed bool, host string) (ctrl.Result, error) {
+func (r *CheReconciler) updateStatus(ctx context.Context, manager *v1alpha1.CheManager, changed *bool, host string, phase v1alpha1.ManagerPhase, phaseMessage string) (ctrl.Result, error) {
 	currentPhase := manager.Status.GatewayPhase
 	currentHost := manager.Status.GatewayHost
 
-	if manager.Spec.Routing == v1alpha1.MultiHost {
-		manager.Status.GatewayPhase = v1alpha1.GatewayPhaseInactive
-	} else if changed {
-		manager.Status.GatewayPhase = v1alpha1.GatewayPhaseInitializing
-	} else {
-		manager.Status.GatewayPhase = v1alpha1.GatewayPhaseEstablished
+	if changed != nil {
+		if manager.Spec.GatewayDisabled {
+			manager.Status.GatewayPhase = v1alpha1.GatewayPhaseInactive
+		} else if *changed {
+			manager.Status.GatewayPhase = v1alpha1.GatewayPhaseInitializing
+		} else {
+			manager.Status.GatewayPhase = v1alpha1.GatewayPhaseEstablished
+		}
 	}
 
 	manager.Status.GatewayHost = host
 
 	// set this unconditionally, because the only other value is set using the finalizer
-	manager.Status.Phase = v1alpha1.ManagerPhaseActive
-	manager.Status.Message = ""
+	manager.Status.Phase = phase
+	manager.Status.Message = phaseMessage
 
 	if currentPhase != manager.Status.GatewayPhase || currentHost != manager.Status.GatewayHost {
 		return ctrl.Result{Requeue: true}, r.client.Status().Update(ctx, manager)
 	}
 
-	return ctrl.Result{Requeue: currentPhase == v1alpha1.GatewayPhaseInitializing}, nil
+	return ctrl.Result{Requeue: currentPhase == v1alpha1.GatewayPhaseInitializing || manager.Status.Phase != v1alpha1.ManagerPhaseActive}, nil
+}
+
+func (r *CheReconciler) validate(manager *v1alpha1.CheManager) error {
+	isOpenShift := infrastructure.Current.Type == infrastructure.OpenShift
+
+	validationErrors := []string{}
+
+	if !isOpenShift {
+		if manager.Spec.GatewayHost == "" {
+			validationErrors = append(validationErrors, "gatewayHost must be specified")
+		}
+	}
+
+	if len(validationErrors) > 0 {
+		message := "The following validation errors were detected:\n"
+		for _, m := range validationErrors {
+			message += "- " + m + "\n"
+		}
+
+		return stdErrors.New(message)
+	}
+
+	return nil
 }
 
 func (r *CheReconciler) finalize(ctx context.Context, manager *v1alpha1.CheManager) (err error) {
-	if manager.Spec.Routing == v1alpha1.SingleHost {
-		err = r.singlehostFinalize(ctx, manager)
-	} else {
-		err = r.multihostFinalize(ctx, manager)
-	}
+	err = r.gatewayConfigFinalize(ctx, manager)
 
 	if err == nil {
 		finalizers := []string{}
@@ -218,20 +253,6 @@ func (r *CheReconciler) finalize(ctx context.Context, manager *v1alpha1.CheManag
 	return err
 }
 
-func (r *CheReconciler) reconcileGateway(ctx context.Context, manager *v1alpha1.CheManager) (bool, string, error) {
-	var changed bool
-	var err error
-	var host string
-
-	if manager.Spec.Routing == v1alpha1.SingleHost {
-		changed, host, err = r.gateway.Sync(ctx, manager)
-	} else {
-		changed, host, err = true, "", r.gateway.Delete(ctx, manager)
-	}
-
-	return changed, host, err
-}
-
 func (r *CheReconciler) ensureFinalizer(ctx context.Context, manager *v1alpha1.CheManager) (updated bool, err error) {
 
 	needsUpdate := true
@@ -242,6 +263,8 @@ func (r *CheReconciler) ensureFinalizer(ctx context.Context, manager *v1alpha1.C
 				break
 			}
 		}
+	} else {
+		manager.Finalizers = []string{}
 	}
 
 	if needsUpdate {

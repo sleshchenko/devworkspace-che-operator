@@ -127,11 +127,7 @@ func (c *CheRoutingSolver) Finalize(routing *controllerv1alpha1.WorkspaceRouting
 		return err
 	}
 
-	if cheManager.Spec.Routing == v1alpha1.SingleHost {
-		return c.singlehostFinalize(cheManager, routing)
-	}
-
-	return c.multihostFinalize(cheManager, routing)
+	return c.cheRoutingFinalize(cheManager, routing)
 }
 
 // GetSpecObjects constructs cluster routing objects which should be applied on the cluster
@@ -141,11 +137,7 @@ func (c *CheRoutingSolver) GetSpecObjects(routing *controllerv1alpha1.WorkspaceR
 		return solvers.RoutingObjects{}, err
 	}
 
-	if cheManager.Spec.Routing == v1alpha1.SingleHost {
-		return c.singlehostSpecObjects(cheManager, routing, workspaceMeta)
-	}
-
-	return c.multihostSpecObjects(cheManager, routing, workspaceMeta)
+	return c.cheSpecObjects(cheManager, routing, workspaceMeta)
 }
 
 // GetExposedEndpoints retreives the URL for each endpoint in a devfile spec from a set of RoutingObjects.
@@ -166,11 +158,7 @@ func (c *CheRoutingSolver) GetExposedEndpoints(endpoints map[string]controllerv1
 		return nil, false, err
 	}
 
-	if manager.Spec.Routing == v1alpha1.SingleHost {
-		return c.singlehostExposedEndpoints(manager, workspaceID, endpoints, routingObj)
-	}
-
-	return c.multihostExposedEndpoints(manager, workspaceID, endpoints, routingObj)
+	return c.cheExposedEndpoints(manager, workspaceID, endpoints, routingObj)
 }
 
 func isSupported(routingClass controllerv1alpha1.WorkspaceRoutingClass) bool {

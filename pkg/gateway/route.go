@@ -41,7 +41,7 @@ func (g *CheGateway) reconcileRoute(syncer sync.Syncer, ctx context.Context, man
 	var err error
 	var routeHost string
 
-	if manager.Spec.Routing != v1alpha1.SingleHost {
+	if manager.Spec.GatewayDisabled {
 		changed, routeHost, err = true, "", syncer.Delete(ctx, route)
 	} else {
 		// The trouble with routes is that they don't support updating the host. Therefore they need to be
@@ -59,7 +59,7 @@ func (g *CheGateway) reconcileRoute(syncer sync.Syncer, ctx context.Context, man
 		// existing = explicit, now = generated -> re-create the route
 		// existing = explicit, now = explicit -> sync with host
 
-		expectGeneratedHost := manager.Spec.Host == ""
+		expectGeneratedHost := manager.Spec.GatewayHost == ""
 
 		key := client.ObjectKey{Name: route.Name, Namespace: route.Namespace}
 		existing := &routev1.Route{}
@@ -109,7 +109,7 @@ func getRouteSpec(manager *v1alpha1.CheManager) *routev1.Route {
 			Labels:    defaults.GetLabelsForComponent(manager, "external-access"),
 		},
 		Spec: routev1.RouteSpec{
-			Host: manager.Spec.Host,
+			Host: manager.Spec.GatewayHost,
 			To: routev1.RouteTargetReference{
 				Kind: "Service",
 				Name: GetGatewayServiceName(manager),

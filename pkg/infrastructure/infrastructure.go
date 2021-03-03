@@ -1,6 +1,11 @@
 package infrastructure
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -53,6 +58,21 @@ func (k Kind) IsLatest() bool {
 		return k.Generation == V4
 	}
 	return true
+}
+
+// GetOperatorNamespace returns the namespace the operator should be running in.
+//
+// This function was ported over from Operator SDK 0.17.0 and modified.
+func GetOperatorNamespace() (string, error) {
+	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("could not read namespace from mounted serviceaccount info")
+		}
+		return "", err
+	}
+	ns := strings.TrimSpace(string(nsBytes))
+	return ns, nil
 }
 
 func detect() Kind {

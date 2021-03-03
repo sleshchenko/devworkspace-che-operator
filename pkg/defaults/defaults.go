@@ -16,10 +16,12 @@ const (
 	defaultGatewayConfigurerImage = "quay.io/che-incubator/configbump:0.1.4"
 
 	configAnnotationPrefix                    = "che.routing.controller.devfile.io/"
-	ConfigAnnotationCheManagerName            = configAnnotationPrefix + "che-name"
-	ConfigAnnotationCheManagerNamespace       = configAnnotationPrefix + "che-namespace"
-	ConfigAnnotationWorkspaceRoutingName      = configAnnotationPrefix + "workspace-routing-name"
-	ConfigAnnotationWorkspaceRoutingNamespace = configAnnotationPrefix + "workspace-routing-namespace"
+	ConfigAnnotationCheManagerName            = configAnnotationPrefix + "che_name"
+	ConfigAnnotationCheManagerNamespace       = configAnnotationPrefix + "che_namespace"
+	ConfigAnnotationWorkspaceRoutingName      = configAnnotationPrefix + "workspace_routing_name"
+	ConfigAnnotationWorkspaceRoutingNamespace = configAnnotationPrefix + "workspace_routing_namespace"
+	ConfigAnnotationEndpointName              = configAnnotationPrefix + "endpoint_name"
+	ConfigAnnotationComponentName             = configAnnotationPrefix + "component_name"
 )
 
 var (
