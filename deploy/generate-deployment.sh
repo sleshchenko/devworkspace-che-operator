@@ -121,7 +121,7 @@ echo "Using yq $(yq --version | head -1 | cut -d' ' -f2)"
 
 # check that we're using compatible versions of the tools
 KUSTOMIZE_VERSION=$(kustomize version | cut -d: -f2 | cut -d' ' -f1 | awk -F '/v' '{print $2}')
-EXPECTED_KUSTOMIZE_VERSION="4.0.1"
+EXPECTED_KUSTOMIZE_VERSION="4.0.4"
 if [[ $KUSTOMIZE_VERSION != $EXPECTED_KUSTOMIZE_VERSION ]]; then
     echo "The last known version of kustomize in Github actions is $EXPECTED_KUSTOMIZE_VERSION but we're using $KUSTOMIZE_VERSION."
     echo
