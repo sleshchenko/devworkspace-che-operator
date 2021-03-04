@@ -123,12 +123,13 @@ echo "Using yq $(yq --version | head -1 | cut -d' ' -f2)"
 KUSTOMIZE_VERSION=$(kustomize version | cut -d: -f2 | cut -d' ' -f1 | awk -F '/v' '{print $2}')
 EXPECTED_KUSTOMIZE_VERSION="4.0.1"
 if [[ $KUSTOMIZE_VERSION != $EXPECTED_KUSTOMIZE_VERSION ]]; then
-    echo "The last known version of kustomize in Github actions is $EXPECTED_KUSTOMIZE_VERSION but we're using $KUSTOMIZE_VERSION."
-    echo
-    echo "If you see this message on Github action, that version changed and you need to upgrade this script (deploy/generate-deployment.sh)."
-    echo "If you see this locally, make sure to install kustomize $EXPECTED_KUSTOMIZE_VERSION:"
-    echo "curl -s \"https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh\" | bash -s $EXPECTED_KUSTOMIZE_VERSION"
-    exit 1
+    echo "WARNING: The last known version of kustomize in Github actions is $EXPECTED_KUSTOMIZE_VERSION but we're using $KUSTOMIZE_VERSION."
+    echo "WARNING: Kustomize changes formatting from time to time, which may result in errors the Github action that we're using to check that the deployment files have been generated."
+    echo "WARNING: If you see this message on Github action, that version changed and you need to upgrade this script (deploy/generate-deployment.sh)."
+    echo "WARNING: If you see this locally, make sure to install kustomize $EXPECTED_KUSTOMIZE_VERSION:"
+    echo "WARNING: curl -s \"https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh\" | bash -s $EXPECTED_KUSTOMIZE_VERSION"
+    echo "WARNING:"
+    echo "WARNING: Let's just try generating the deployment files anyway. Maybe, the difference in the versions doesn't matter."
 fi
 
 #space separated list of templates to interpolate
