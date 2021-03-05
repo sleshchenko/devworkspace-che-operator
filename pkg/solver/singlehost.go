@@ -21,7 +21,7 @@ import (
 	dwoche "github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/defaults"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/sync"
-	dw "github.com/devfile/api/pkg/apis/workspaces/v1alpha2"
+	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/workspacerouting/solvers"
 	"github.com/devfile/devworkspace-operator/pkg/common"
@@ -206,7 +206,7 @@ func (c *CheRoutingSolver) getGatewayConfigMaps(cheManager *dwoche.CheManager, w
 			i := int32(e.TargetPort)
 
 			name := ""
-			if e.Attributes.GetString(uniqueEndpointAttributeName, nil) == "true" {
+			if e.Attributes.GetBoolean(uniqueEndpointAttributeName, nil) {
 				name = e.Name
 			}
 

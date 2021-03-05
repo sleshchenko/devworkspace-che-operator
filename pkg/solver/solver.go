@@ -19,6 +19,7 @@ import (
 	"github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/defaults"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/manager"
+	"github.com/che-incubator/devworkspace-che-operator/pkg/util"
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/workspacerouting/solvers"
@@ -127,7 +128,7 @@ func (c *CheRoutingSolver) Finalize(routing *controllerv1alpha1.WorkspaceRouting
 		return err
 	}
 
-	if cheManager.Spec.Routing == v1alpha1.SingleHost {
+	if util.IsSingleHost(cheManager) {
 		return c.singlehostFinalize(cheManager, routing)
 	}
 
@@ -141,7 +142,7 @@ func (c *CheRoutingSolver) GetSpecObjects(routing *controllerv1alpha1.WorkspaceR
 		return solvers.RoutingObjects{}, err
 	}
 
-	if cheManager.Spec.Routing == v1alpha1.SingleHost {
+	if util.IsSingleHost(cheManager) {
 		return c.singlehostSpecObjects(cheManager, routing, workspaceMeta)
 	}
 
@@ -166,7 +167,7 @@ func (c *CheRoutingSolver) GetExposedEndpoints(endpoints map[string]controllerv1
 		return nil, false, err
 	}
 
-	if manager.Spec.Routing == v1alpha1.SingleHost {
+	if util.IsSingleHost(manager) {
 		return c.singlehostExposedEndpoints(manager, workspaceID, endpoints, routingObj)
 	}
 

@@ -46,10 +46,7 @@ func init() {
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(rbac.AddToScheme(scheme))
-
-	if infrastructure.Current.Type == infrastructure.OpenShift {
-		utilruntime.Must(routev1.AddToScheme(scheme))
-	}
+	utilruntime.Must(routev1.AddToScheme(scheme))
 }
 
 func main() {
