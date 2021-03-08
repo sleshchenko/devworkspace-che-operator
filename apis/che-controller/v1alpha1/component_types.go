@@ -75,7 +75,7 @@ type CheManagerStatus struct {
 	Phase ManagerPhase `json:"phase,omitempty"`
 
 	// Message contains further human-readable info for why the manager is in the phase it currently is.
-	Message string `json:"omitempty"`
+	Message string `json:"message,omitempty"`
 }
 
 // CheManager is the configuration of the CheManager layer of Devworkspace.

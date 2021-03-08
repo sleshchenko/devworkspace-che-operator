@@ -6,6 +6,7 @@ import (
 	"github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/defaults"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/sync"
+	"github.com/che-incubator/devworkspace-che-operator/pkg/util"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routev1 "github.com/openshift/api/route/v1"
@@ -35,13 +36,13 @@ var (
 	}
 )
 
-func (g *CheGateway) reconcileRoute(syncer sync.Syncer, ctx context.Context, manager *v1alpha1.CheManager) (bool, string, error) {
-	route := getRouteSpec(manager)
+func (g *CheGateway) reconcileRoute(syncer sync.Syncer, ctx context.Context, mgr *v1alpha1.CheManager) (bool, string, error) {
+	route := getRouteSpec(mgr)
 	var changed bool
 	var err error
 	var routeHost string
 
-	if manager.Spec.Routing != v1alpha1.SingleHost {
+	if !util.IsSingleHost(mgr) {
 		changed, routeHost, err = true, "", syncer.Delete(ctx, route)
 	} else {
 		// The trouble with routes is that they don't support updating the host. Therefore they need to be
@@ -59,7 +60,7 @@ func (g *CheGateway) reconcileRoute(syncer sync.Syncer, ctx context.Context, man
 		// existing = explicit, now = generated -> re-create the route
 		// existing = explicit, now = explicit -> sync with host
 
-		expectGeneratedHost := manager.Spec.Host == ""
+		expectGeneratedHost := mgr.Spec.Host == ""
 
 		key := client.ObjectKey{Name: route.Name, Namespace: route.Namespace}
 		existing := &routev1.Route{}
@@ -91,7 +92,7 @@ func (g *CheGateway) reconcileRoute(syncer sync.Syncer, ctx context.Context, man
 
 		var inCluster runtime.Object
 
-		changed, inCluster, err = syncer.Sync(ctx, manager, route, diffOpts)
+		changed, inCluster, err = syncer.Sync(ctx, mgr, route, diffOpts)
 		if err != nil {
 			return changed, "", err
 		}

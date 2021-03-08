@@ -8,10 +8,11 @@ import (
 	"github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/defaults"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/manager"
-	dw "github.com/devfile/api/pkg/apis/workspaces/v1alpha2"
+	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/workspacerouting/solvers"
 	"github.com/devfile/devworkspace-operator/pkg/config"
+	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
@@ -35,6 +36,8 @@ func createTestScheme() *runtime.Scheme {
 	utilruntime.Must(rbac.AddToScheme(scheme))
 	utilruntime.Must(dw.AddToScheme(scheme))
 	utilruntime.Must(dwo.AddToScheme(scheme))
+	utilruntime.Must(routev1.AddToScheme(scheme))
+
 	return scheme
 }
 
@@ -47,8 +50,7 @@ func getSpecObjects(t *testing.T, routing *dwo.WorkspaceRouting) (client.Client,
 			Finalizers: []string{manager.FinalizerName},
 		},
 		Spec: v1alpha1.CheManagerSpec{
-			Host:    "over.the.rainbow",
-			Routing: v1alpha1.SingleHost,
+			Host: "over.the.rainbow",
 		},
 	}
 
@@ -68,7 +70,10 @@ func getSpecObjects(t *testing.T, routing *dwo.WorkspaceRouting) (client.Client,
 
 	// we need to do 1 round of che manager reconciliation so that the solver gets initialized
 	cheRecon := manager.New(cl, scheme)
-	cheRecon.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: "che", Namespace: "ns"}})
+	_, err = cheRecon.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: "che", Namespace: "ns"}})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	objs, err := solver.GetSpecObjects(routing, meta)
 	if err != nil {

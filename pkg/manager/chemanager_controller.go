@@ -21,6 +21,7 @@ import (
 	"github.com/che-incubator/devworkspace-che-operator/pkg/gateway"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/infrastructure"
 	datasync "github.com/che-incubator/devworkspace-che-operator/pkg/sync"
+	"github.com/che-incubator/devworkspace-che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -191,42 +192,42 @@ func (r *CheReconciler) updateStatus(ctx context.Context, manager *v1alpha1.CheM
 	return ctrl.Result{Requeue: currentPhase == v1alpha1.GatewayPhaseInitializing}, nil
 }
 
-func (r *CheReconciler) finalize(ctx context.Context, manager *v1alpha1.CheManager) (err error) {
-	if manager.Spec.Routing == v1alpha1.SingleHost {
-		err = r.singlehostFinalize(ctx, manager)
+func (r *CheReconciler) finalize(ctx context.Context, mgr *v1alpha1.CheManager) (err error) {
+	if util.IsSingleHost(mgr) {
+		err = r.singlehostFinalize(ctx, mgr)
 	} else {
-		err = r.multihostFinalize(ctx, manager)
+		err = r.multihostFinalize(ctx, mgr)
 	}
 
 	if err == nil {
 		finalizers := []string{}
-		for i := range manager.Finalizers {
-			if manager.Finalizers[i] != FinalizerName {
-				finalizers = append(finalizers, manager.Finalizers[i])
+		for i := range mgr.Finalizers {
+			if mgr.Finalizers[i] != FinalizerName {
+				finalizers = append(finalizers, mgr.Finalizers[i])
 			}
 		}
 
-		manager.Finalizers = finalizers
+		mgr.Finalizers = finalizers
 
-		err = r.client.Update(ctx, manager)
+		err = r.client.Update(ctx, mgr)
 	} else {
-		manager.Status.Phase = v1alpha1.ManagerPhasePendingDeletion
-		manager.Status.Message = fmt.Sprintf("Finalization has failed: %s", err.Error())
-		err = r.client.Status().Update(ctx, manager)
+		mgr.Status.Phase = v1alpha1.ManagerPhasePendingDeletion
+		mgr.Status.Message = fmt.Sprintf("Finalization has failed: %s", err.Error())
+		err = r.client.Status().Update(ctx, mgr)
 	}
 
 	return err
 }
 
-func (r *CheReconciler) reconcileGateway(ctx context.Context, manager *v1alpha1.CheManager) (bool, string, error) {
+func (r *CheReconciler) reconcileGateway(ctx context.Context, mgr *v1alpha1.CheManager) (bool, string, error) {
 	var changed bool
 	var err error
 	var host string
 
-	if manager.Spec.Routing == v1alpha1.SingleHost {
-		changed, host, err = r.gateway.Sync(ctx, manager)
+	if util.IsSingleHost(mgr) {
+		changed, host, err = r.gateway.Sync(ctx, mgr)
 	} else {
-		changed, host, err = true, "", r.gateway.Delete(ctx, manager)
+		changed, host, err = true, "", r.gateway.Delete(ctx, mgr)
 	}
 
 	return changed, host, err

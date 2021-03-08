@@ -10,6 +10,7 @@ import (
 	"github.com/che-incubator/devworkspace-che-operator/pkg/defaults"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/gateway"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/sync"
+	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
@@ -30,6 +31,8 @@ func createTestScheme() *runtime.Scheme {
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(rbac.AddToScheme(scheme))
+	utilruntime.Must(routev1.AddToScheme(scheme))
+
 	return scheme
 }
 
@@ -44,8 +47,7 @@ func TestCreatesObjectsInSingleHost(t *testing.T) {
 			Namespace: ns,
 		},
 		Spec: v1alpha1.CheManagerSpec{
-			Host:    "over.the.rainbow",
-			Routing: v1alpha1.SingleHost,
+			Host: "over.the.rainbow",
 		},
 	})
 
@@ -118,8 +120,7 @@ func TestUpdatesObjectsInSingleHost(t *testing.T) {
 				Finalizers: []string{FinalizerName},
 			},
 			Spec: v1alpha1.CheManagerSpec{
-				Host:    "over.the.rainbow",
-				Routing: v1alpha1.SingleHost,
+				Host: "over.the.rainbow",
 			},
 		})
 
@@ -499,8 +500,7 @@ func TestManagerFinalization(t *testing.T) {
 				Finalizers: []string{FinalizerName},
 			},
 			Spec: v1alpha1.CheManagerSpec{
-				Host:    "over.the.rainbow",
-				Routing: v1alpha1.SingleHost,
+				Host: "over.the.rainbow",
 			},
 		},
 		&corev1.ConfigMap{

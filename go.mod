@@ -3,8 +3,8 @@ module github.com/che-incubator/devworkspace-che-operator
 go 1.13
 
 require (
-	github.com/devfile/api v0.0.0-20201125082321-aeda60d43619
-	github.com/devfile/devworkspace-operator v0.0.0-20210208163832-3bdccac9f3aa
+	github.com/devfile/api/v2 v2.0.0-20210212161736-283b0c54946e
+	github.com/devfile/devworkspace-operator v0.1.1-0.20210305092645-42120feb436d
 	github.com/google/go-cmp v0.5.0
 	github.com/openshift/api v0.0.0-20200205133042-34f0ec8dab87
 	k8s.io/api v0.18.8
