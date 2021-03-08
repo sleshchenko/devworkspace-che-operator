@@ -153,16 +153,10 @@ func (c *CheRoutingSolver) singlehostExposedEndpoints(manager *dwoche.CheManager
 				publicURL = publicURL + "/"
 			}
 
-			attrs := map[string]string{}
-			err := endpoint.Attributes.Into(&attrs)
-			if err != nil {
-				return nil, false, err
-			}
-
 			exposedEndpoints = append(exposedEndpoints, dwo.ExposedEndpoint{
 				Name:       endpoint.Name,
 				Url:        publicURL,
-				Attributes: attrs,
+				Attributes: endpoint.Attributes,
 			})
 		}
 		exposed[machineName] = exposedEndpoints
