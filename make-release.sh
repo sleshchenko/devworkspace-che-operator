@@ -18,6 +18,7 @@ TMP=""
 while [[ "$#" -gt 0 ]]; do	
   case $1 in	
     '-v'|'--version') VERSION="$2"; shift 1;;		
+    '--dwo-version') DWO_VERSION="$2"; shift 1;;
     '-tmp'|'--use-tmp-dir') TMP=$(mktemp -d); shift 0;;
   esac	
   shift 1	
@@ -56,8 +57,8 @@ bump_version () {
 
 usage ()	
 {	
-  echo "Usage: $0 --version [VERSION TO RELEASE]"	
-  echo "Example: $0 --version 0.1.0"; echo	
+  echo "Usage: $0 --version [VERSION TO RELEASE] --dwo-version [DEVWORKSPACE OPERATOR VERSION]"	
+  echo "Example: $0 --version v7.27.0"; echo	
 }	
 
 if [[ ! ${VERSION} ]]; then	
@@ -108,6 +109,11 @@ set -e
 echo "${VERSION}" > VERSION
 
 export IMG="quay.io/che-incubator/devworkspace-che-operator:${VERSION}"
+
+if [ -n "${DWO_VERSION}" ]; then
+  sed -i "s/github.com\/devfile\/devworkspace-operator.*/github.com\/devfile\/devworkspace-operator ${DWO_VERSION}/" go.mod
+fi
+
 make docker-build
 make docker-push
 make generate-deployment
