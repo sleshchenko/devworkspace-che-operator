@@ -112,6 +112,7 @@ export IMG="quay.io/che-incubator/devworkspace-che-operator:${VERSION}"
 
 if [ -n "${DWO_VERSION}" ]; then
   sed -i "s/github.com\/devfile\/devworkspace-operator.*/github.com\/devfile\/devworkspace-operator ${DWO_VERSION}/" go.mod
+  go mod tidy
 fi
 
 make docker-build
