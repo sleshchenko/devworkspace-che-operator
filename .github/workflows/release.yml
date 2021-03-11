@@ -6,6 +6,9 @@ on:
       version:
         description: 'release version in format vX.Y.Z'
         required: true
+      dwoVersion:
+        description: 'DevWorkspace operator version in format vX.Y.Z'
+        required: true
 
 jobs:
   release:
@@ -55,4 +58,4 @@ jobs:
           git config --global user.email "mkuznets@redhat.com"
 
           export GITHUB_TOKEN=${{ secrets.CHE_INCUBATOR_BOT_GITHUB_TOKEN }}
-          bash -x ./make-release.sh --version ${{ github.event.inputs.version}}
+          bash -x ./make-release.sh --version ${{ github.event.inputs.version}} --dwo-version ${{ github.event.inputs.dwoVersion}}
