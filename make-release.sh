@@ -61,7 +61,7 @@ usage ()
   echo "Example: $0 --version v7.27.0"; echo	
 }	
 
-if [[ ! ${VERSION} ]]; then	
+if [[ ! ${VERSION} ]] || [[ ! ${DWO_VERSION} ]]; then	
   usage	
   exit 1	
 fi	
@@ -110,14 +110,13 @@ echo "${VERSION}" > VERSION
 
 export IMG="quay.io/che-incubator/devworkspace-che-operator:${VERSION}"
 
-if [ -n "${DWO_VERSION}" ]; then
-  sed -i "s/github.com\/devfile\/devworkspace-operator.*/github.com\/devfile\/devworkspace-operator ${DWO_VERSION}/" go.mod
-  go mod tidy
-fi
+sed -i "s/github.com\/devfile\/devworkspace-operator.*/github.com\/devfile\/devworkspace-operator ${DWO_VERSION}/" go.mod
+go mod download
+go mod tidy
 
+make generate-deployment
 make docker-build
 make docker-push
-make generate-deployment
 
 # tag the release	
 git tag "${VERSION}"	
