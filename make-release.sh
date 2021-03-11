@@ -114,7 +114,7 @@ sed -i "s/github.com\/devfile\/devworkspace-operator.*/github.com\/devfile\/devw
 go mod download
 go mod tidy
 
-make generate-deployment
+make generate_deployment
 make docker-build
 make docker-push
 
