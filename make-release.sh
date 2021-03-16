@@ -58,7 +58,7 @@ bump_version () {
 usage ()	
 {	
   echo "Usage: $0 --version [VERSION TO RELEASE] --dwo-version [DEVWORKSPACE OPERATOR VERSION]"	
-  echo "Example: $0 --version v7.27.0"; echo	
+  echo "Example: $0 --version v7.27.0 --dwo-version v0.1.0"; echo	
 }	
 
 if [[ ! ${VERSION} ]] || [[ ! ${DWO_VERSION} ]]; then	
@@ -114,7 +114,7 @@ sed -i "s/github.com\/devfile\/devworkspace-operator.*/github.com\/devfile\/devw
 go mod download
 go mod tidy
 
-make generate-deployment
+make generate_deployment
 make docker-build
 make docker-push
 
