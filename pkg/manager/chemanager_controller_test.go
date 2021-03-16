@@ -10,6 +10,7 @@ import (
 	"github.com/che-incubator/devworkspace-che-operator/pkg/defaults"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/gateway"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/sync"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -25,6 +26,8 @@ import (
 )
 
 func createTestScheme() *runtime.Scheme {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
 	scheme := runtime.NewScheme()
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 	utilruntime.Must(extensions.AddToScheme(scheme))
