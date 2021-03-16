@@ -51,8 +51,6 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/devfile/api/v2 v2.0.0-20210212161736-283b0c54946e h1:BZ2yGqLeup9dugsYQMWhhyb525TPQr5Krq+nzBj09X0=
 github.com/devfile/api/v2 v2.0.0-20210212161736-283b0c54946e/go.mod h1:Cot4snybn3qhIh48oIFi9McocnIx7zY5fFbjfrIpPvg=
-github.com/devfile/devworkspace-operator v0.1.1-0.20210306005457-3f3d84540faa h1:Q6GQJankTSEnTU/sarZcP+zBawqinMQpWUGAjzUzVjw=
-github.com/devfile/devworkspace-operator v0.1.1-0.20210306005457-3f3d84540faa/go.mod h1:4giC26a/76pCxv07os9d8l/jmFRmAddEqFv+eFbsyJ4=
 github.com/devfile/devworkspace-operator v0.1.1-0.20210315152417-90d505f5ed80 h1:01cA6A3qqxfrtTBPuNMGZ+m6nEWwDKVnJOvDQD+le9w=
 github.com/devfile/devworkspace-operator v0.1.1-0.20210315152417-90d505f5ed80/go.mod h1:QTksdohasuxgK1Tmz4mhNg1iwKWDBFAyBX1p3nHA2S4=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
