@@ -27,9 +27,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
-	"github.com/che-incubator/devworkspace-che-operator/pkg/infrastructure"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/manager"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/solver"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	routev1 "github.com/openshift/api/route/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
@@ -61,9 +61,8 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
-	if infrastructure.Current.Type == infrastructure.Undetected {
-		setupLog.Error(nil, "Unable to detect the Kubernetes infrastructure.")
-		os.Exit(1)
+	if err := infrastructure.Initialize(); err != nil {
+		setupLog.Error(nil, "unable to detect the Kubernetes infrastructure type", "error", err)
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{

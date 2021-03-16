@@ -19,9 +19,9 @@ import (
 
 	"github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/gateway"
-	"github.com/che-incubator/devworkspace-che-operator/pkg/infrastructure"
 	datasync "github.com/che-incubator/devworkspace-che-operator/pkg/sync"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/util"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -104,7 +104,7 @@ func (r *CheReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbac.Role{}).
 		Owns(&rbac.RoleBinding{})
-	if infrastructure.Current.Type == infrastructure.OpenShift {
+	if infrastructure.IsOpenShift() {
 		bld.Owns(&routev1.Route{})
 	}
 	return bld.Complete(r)
