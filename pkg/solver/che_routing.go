@@ -39,9 +39,9 @@ import (
 )
 
 const (
-	uniqueEndpointAttributeName      = "unique"
-	relocatableEndpointAttributeName = "relocatable"
-	endpointURLPrefixPattern         = "/%s/%s/%d"
+	uniqueEndpointAttributeName              = "unique"
+	urlRewriteSupportedEndpointAttributeName = "urlRewriteSupported"
+	endpointURLPrefixPattern                 = "/%s/%s/%d"
 	// note - che-theia DEPENDS on this format - we should not change this unless crosschecked with the che-theia impl
 	uniqueEndpointURLPrefixPattern = "/%s/%s/%s"
 )
@@ -302,7 +302,7 @@ func classifyEndpoints(gatewayEnabled bool, order *int, endpoints *dwo.EndpointL
 		}
 
 		ports := multihostPorts
-		if gatewayEnabled && e.Attributes.GetString(relocatableEndpointAttributeName, nil) == "true" {
+		if gatewayEnabled && e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
 			ports = singlehostPorts
 		}
 
