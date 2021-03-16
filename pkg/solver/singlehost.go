@@ -23,9 +23,9 @@ import (
 	"github.com/che-incubator/devworkspace-che-operator/pkg/sync"
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	"github.com/devfile/devworkspace-operator/controllers/controller/workspacerouting/solvers"
+	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	"github.com/devfile/devworkspace-operator/pkg/common"
-	"github.com/devfile/devworkspace-operator/pkg/config"
+	"github.com/devfile/devworkspace-operator/pkg/constants"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,7 +45,7 @@ var (
 	configMapDiffOpts = cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta", "ObjectMeta")
 )
 
-func (c *CheRoutingSolver) singlehostSpecObjects(cheManager *dwoche.CheManager, routing *dwo.WorkspaceRouting, workspaceMeta solvers.WorkspaceMetadata) (solvers.RoutingObjects, error) {
+func (c *CheRoutingSolver) singlehostSpecObjects(cheManager *dwoche.CheManager, routing *dwo.DevWorkspaceRouting, workspaceMeta solvers.WorkspaceMetadata) (solvers.RoutingObjects, error) {
 	objs := solvers.RoutingObjects{}
 
 	objs.Services = solvers.GetDiscoverableServicesForEndpoints(routing.Spec.Endpoints, workspaceMeta)
@@ -165,13 +165,13 @@ func (c *CheRoutingSolver) singlehostExposedEndpoints(manager *dwoche.CheManager
 	return exposed, true, nil
 }
 
-func (c *CheRoutingSolver) getGatewayConfigMaps(cheManager *dwoche.CheManager, workspaceID string, routing *dwo.WorkspaceRouting) ([]corev1.ConfigMap, error) {
-	restrictedAnno, setRestrictedAnno := routing.Annotations[config.WorkspaceRestrictedAccessAnnotation]
+func (c *CheRoutingSolver) getGatewayConfigMaps(cheManager *dwoche.CheManager, workspaceID string, routing *dwo.DevWorkspaceRouting) ([]corev1.ConfigMap, error) {
+	restrictedAnno, setRestrictedAnno := routing.Annotations[constants.WorkspaceRestrictedAccessAnnotation]
 
 	labels := defaults.GetLabelsForComponent(cheManager, "gateway-config")
-	labels[config.WorkspaceIDLabel] = workspaceID
+	labels[constants.WorkspaceIDLabel] = workspaceID
 	if setRestrictedAnno {
-		labels[config.WorkspaceRestrictedAccessAnnotation] = restrictedAnno
+		labels[constants.WorkspaceRestrictedAccessAnnotation] = restrictedAnno
 	}
 
 	configMap := corev1.ConfigMap{
@@ -180,8 +180,8 @@ func (c *CheRoutingSolver) getGatewayConfigMaps(cheManager *dwoche.CheManager, w
 			Namespace: cheManager.Namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
-				defaults.ConfigAnnotationWorkspaceRoutingName:      routing.Name,
-				defaults.ConfigAnnotationWorkspaceRoutingNamespace: routing.Namespace,
+				defaults.ConfigAnnotationDevWorkspaceRoutingName:      routing.Name,
+				defaults.ConfigAnnotationDevWorkspaceRoutingNamespace: routing.Namespace,
 			},
 		},
 		Data: map[string]string{},
@@ -270,10 +270,10 @@ func (c *CheRoutingSolver) getGatewayConfigMaps(cheManager *dwoche.CheManager, w
 	return []corev1.ConfigMap{configMap}, nil
 }
 
-func (c *CheRoutingSolver) singlehostFinalize(cheManager *dwoche.CheManager, routing *dwo.WorkspaceRouting) error {
+func (c *CheRoutingSolver) singlehostFinalize(cheManager *dwoche.CheManager, routing *dwo.DevWorkspaceRouting) error {
 	configs := &corev1.ConfigMapList{}
 
-	selector, err := labels.Parse(fmt.Sprintf("%s=%s", config.WorkspaceIDLabel, routing.Spec.WorkspaceId))
+	selector, err := labels.Parse(fmt.Sprintf("%s=%s", constants.WorkspaceIDLabel, routing.Spec.WorkspaceId))
 	if err != nil {
 		return err
 	}

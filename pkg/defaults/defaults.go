@@ -15,11 +15,11 @@ const (
 	defaultGatewayImage           = "docker.io/traefik:v2.2.8"
 	defaultGatewayConfigurerImage = "quay.io/che-incubator/configbump:0.1.4"
 
-	configAnnotationPrefix                    = "che.routing.controller.devfile.io/"
-	ConfigAnnotationCheManagerName            = configAnnotationPrefix + "che-name"
-	ConfigAnnotationCheManagerNamespace       = configAnnotationPrefix + "che-namespace"
-	ConfigAnnotationWorkspaceRoutingName      = configAnnotationPrefix + "workspace-routing-name"
-	ConfigAnnotationWorkspaceRoutingNamespace = configAnnotationPrefix + "workspace-routing-namespace"
+	configAnnotationPrefix                       = "che.routing.controller.devfile.io/"
+	ConfigAnnotationCheManagerName               = configAnnotationPrefix + "che-name"
+	ConfigAnnotationCheManagerNamespace          = configAnnotationPrefix + "che-namespace"
+	ConfigAnnotationDevWorkspaceRoutingName      = configAnnotationPrefix + "workspace-routing-name"
+	ConfigAnnotationDevWorkspaceRoutingNamespace = configAnnotationPrefix + "workspace-routing-namespace"
 )
 
 var (

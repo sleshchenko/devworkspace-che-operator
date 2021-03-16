@@ -17,7 +17,7 @@ import (
 	"os"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	"github.com/devfile/devworkspace-operator/controllers/controller/workspacerouting"
+	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
@@ -85,15 +85,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	routingReconciler := &workspacerouting.WorkspaceRoutingReconciler{
+	routingReconciler := &devworkspacerouting.DevWorkspaceRoutingReconciler{
 		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("WorkspaceRouting"),
+		Log:          ctrl.Log.WithName("controllers").WithName("DevWorkspaceRouting"),
 		Scheme:       mgr.GetScheme(),
 		SolverGetter: solver.Getter(scheme),
 	}
 
 	if err = routingReconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CheWorkspaceRoutingSolver")
+		setupLog.Error(err, "unable to create controller", "controller", "CheDevWorkspaceRoutingSolver")
 		os.Exit(1)
 	}
 
