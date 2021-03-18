@@ -20,8 +20,8 @@ import (
 
 	"github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/gateway"
-	"github.com/che-incubator/devworkspace-che-operator/pkg/infrastructure"
 	datasync "github.com/che-incubator/devworkspace-che-operator/pkg/sync"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -104,7 +104,7 @@ func (r *CheReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbac.Role{}).
 		Owns(&rbac.RoleBinding{})
-	if infrastructure.Current.Type == infrastructure.OpenShift {
+	if infrastructure.IsOpenShift() {
 		bld.Owns(&routev1.Route{})
 	}
 	return bld.Complete(r)
@@ -208,11 +208,9 @@ func (r *CheReconciler) updateStatus(ctx context.Context, manager *v1alpha1.CheM
 }
 
 func (r *CheReconciler) validate(manager *v1alpha1.CheManager) error {
-	isOpenShift := infrastructure.Current.Type == infrastructure.OpenShift
-
 	validationErrors := []string{}
 
-	if !isOpenShift {
+	if !infrastructure.IsOpenShift() {
 		if manager.Spec.GatewayHost == "" {
 			validationErrors = append(validationErrors, "gatewayHost must be specified")
 		}
@@ -230,24 +228,24 @@ func (r *CheReconciler) validate(manager *v1alpha1.CheManager) error {
 	return nil
 }
 
-func (r *CheReconciler) finalize(ctx context.Context, manager *v1alpha1.CheManager) (err error) {
-	err = r.gatewayConfigFinalize(ctx, manager)
+func (r *CheReconciler) finalize(ctx context.Context, mgr *v1alpha1.CheManager) (err error) {
+	err = r.gatewayConfigFinalize(ctx, mgr)
 
 	if err == nil {
 		finalizers := []string{}
-		for i := range manager.Finalizers {
-			if manager.Finalizers[i] != FinalizerName {
-				finalizers = append(finalizers, manager.Finalizers[i])
+		for i := range mgr.Finalizers {
+			if mgr.Finalizers[i] != FinalizerName {
+				finalizers = append(finalizers, mgr.Finalizers[i])
 			}
 		}
 
-		manager.Finalizers = finalizers
+		mgr.Finalizers = finalizers
 
-		err = r.client.Update(ctx, manager)
+		err = r.client.Update(ctx, mgr)
 	} else {
-		manager.Status.Phase = v1alpha1.ManagerPhasePendingDeletion
-		manager.Status.Message = fmt.Sprintf("Finalization has failed: %s", err.Error())
-		err = r.client.Status().Update(ctx, manager)
+		mgr.Status.Phase = v1alpha1.ManagerPhasePendingDeletion
+		mgr.Status.Message = fmt.Sprintf("Finalization has failed: %s", err.Error())
+		err = r.client.Status().Update(ctx, mgr)
 	}
 
 	return err

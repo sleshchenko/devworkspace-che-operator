@@ -21,13 +21,13 @@ import (
 	"github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
 	dwoche "github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/defaults"
-	"github.com/che-incubator/devworkspace-che-operator/pkg/infrastructure"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/sync"
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	"github.com/devfile/devworkspace-operator/controllers/controller/workspacerouting/solvers"
+	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 	"github.com/devfile/devworkspace-operator/pkg/common"
-	"github.com/devfile/devworkspace-operator/pkg/config"
+	"github.com/devfile/devworkspace-operator/pkg/constants"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routeV1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -50,7 +50,7 @@ var (
 	configMapDiffOpts = cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta", "ObjectMeta")
 )
 
-func (c *CheRoutingSolver) cheSpecObjects(cheManager *dwoche.CheManager, routing *dwo.WorkspaceRouting, workspaceMeta solvers.WorkspaceMetadata) (solvers.RoutingObjects, error) {
+func (c *CheRoutingSolver) cheSpecObjects(cheManager *dwoche.CheManager, routing *dwo.DevWorkspaceRouting, workspaceMeta solvers.WorkspaceMetadata) (solvers.RoutingObjects, error) {
 	objs := solvers.RoutingObjects{}
 
 	objs.Services = solvers.GetDiscoverableServicesForEndpoints(routing.Spec.Endpoints, workspaceMeta)
@@ -150,7 +150,7 @@ func (c *CheRoutingSolver) cheExposedEndpoints(manager *dwoche.CheManager, works
 			// try to find the endpoint in the ingresses/routes first. If it is there, it is exposed on a subdomain
 			// otherwise it is exposed through the gateway
 			var endpointURL string
-			if infrastructure.Current.Type == infrastructure.OpenShift {
+			if infrastructure.IsOpenShift() {
 				route := findRouteForEndpoint(machineName, endpoint, &routingObj)
 				if route != nil {
 					endpointURL = path.Join(route.Spec.Host, endpoint.Path)
@@ -183,16 +183,10 @@ func (c *CheRoutingSolver) cheExposedEndpoints(manager *dwoche.CheManager, works
 				publicURL = publicURL + "/"
 			}
 
-			attrs := map[string]string{}
-			err := endpoint.Attributes.Into(&attrs)
-			if err != nil {
-				return nil, false, err
-			}
-
 			exposedEndpoints = append(exposedEndpoints, dwo.ExposedEndpoint{
 				Name:       endpoint.Name,
 				Url:        publicURL,
-				Attributes: attrs,
+				Attributes: endpoint.Attributes,
 			})
 		}
 		exposed[machineName] = exposedEndpoints
@@ -215,13 +209,13 @@ func secureScheme(scheme string) string {
 	}
 }
 
-func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheManager *dwoche.CheManager, workspaceID string, routing *dwo.WorkspaceRouting, objs *solvers.RoutingObjects) ([]corev1.ConfigMap, error) {
-	restrictedAnno, setRestrictedAnno := routing.Annotations[config.WorkspaceRestrictedAccessAnnotation]
+func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheManager *dwoche.CheManager, workspaceID string, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects) ([]corev1.ConfigMap, error) {
+	restrictedAnno, setRestrictedAnno := routing.Annotations[constants.WorkspaceRestrictedAccessAnnotation]
 
 	labels := defaults.GetLabelsForComponent(cheManager, "gateway-config")
-	labels[config.WorkspaceIDLabel] = workspaceID
+	labels[constants.WorkspaceIDLabel] = workspaceID
 	if setRestrictedAnno {
-		labels[config.WorkspaceRestrictedAccessAnnotation] = restrictedAnno
+		labels[constants.WorkspaceRestrictedAccessAnnotation] = restrictedAnno
 	}
 
 	configMap := corev1.ConfigMap{
@@ -230,8 +224,8 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheManager *dw
 			Namespace: cheManager.Namespace,
 			Labels:    labels,
 			Annotations: map[string]string{
-				defaults.ConfigAnnotationWorkspaceRoutingName:      routing.Name,
-				defaults.ConfigAnnotationWorkspaceRoutingNamespace: routing.Namespace,
+				defaults.ConfigAnnotationDevWorkspaceRoutingName:      routing.Name,
+				defaults.ConfigAnnotationDevWorkspaceRoutingNamespace: routing.Namespace,
 			},
 		},
 		Data: map[string]string{},
@@ -360,7 +354,7 @@ func addToTraefikConfig(namespace string, workspaceID string, machineName string
 }
 
 func addToRoutingObjects(cheManager *v1alpha1.CheManager, namespace string, baseDomain string, workspaceID string, machineName string, portMapping map[int32]map[string]int, objs *solvers.RoutingObjects) {
-	isOpenShift := infrastructure.Current.Type == infrastructure.OpenShift
+	isOpenShift := infrastructure.IsOpenShift()
 
 	for port, names := range portMapping {
 		backingService := findServiceForPort(port, objs)
@@ -429,10 +423,10 @@ func findRouteForEndpoint(machineName string, endpoint dw.Endpoint, objs *solver
 	return nil
 }
 
-func (c *CheRoutingSolver) cheRoutingFinalize(cheManager *dwoche.CheManager, routing *dwo.WorkspaceRouting) error {
+func (c *CheRoutingSolver) cheRoutingFinalize(cheManager *dwoche.CheManager, routing *dwo.DevWorkspaceRouting) error {
 	configs := &corev1.ConfigMapList{}
 
-	selector, err := labels.Parse(fmt.Sprintf("%s=%s", config.WorkspaceIDLabel, routing.Spec.WorkspaceId))
+	selector, err := labels.Parse(fmt.Sprintf("%s=%s", constants.WorkspaceIDLabel, routing.Spec.WorkspaceId))
 	if err != nil {
 		return err
 	}

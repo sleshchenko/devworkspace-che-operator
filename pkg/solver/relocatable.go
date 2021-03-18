@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/che-incubator/devworkspace-che-operator/pkg/defaults"
-	"github.com/devfile/devworkspace-operator/pkg/config"
+	"github.com/devfile/devworkspace-operator/pkg/constants"
 	routeV1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
@@ -28,7 +28,7 @@ func getRouteForService(order int, machineName string, endpointName string, port
 			Name:      getEndpointExposingObjectName(machineName, workspaceID, port, endpointName),
 			Namespace: service.Namespace,
 			Labels: map[string]string{
-				config.WorkspaceIDLabel: workspaceID,
+				constants.WorkspaceIDLabel: workspaceID,
 			},
 			Annotations:     routeAnnotations(machineName, endpointName),
 			OwnerReferences: service.OwnerReferences,
@@ -59,7 +59,7 @@ func getIngressForService(order int, machineName string, endpointName string, po
 			Name:      getEndpointExposingObjectName(machineName, workspaceID, port, endpointName),
 			Namespace: service.Namespace,
 			Labels: map[string]string{
-				config.WorkspaceIDLabel: workspaceID,
+				constants.WorkspaceIDLabel: workspaceID,
 			},
 			Annotations:     nginxIngressAnnotations(machineName, endpointName),
 			OwnerReferences: service.OwnerReferences,

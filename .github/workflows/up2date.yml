@@ -15,7 +15,7 @@ name: Check Generated Files
 on:
   pull_request:
     branches:
-      - 'master'
+      - 'main'
       - 'v*'
     paths-ignore:
       - '**.md'

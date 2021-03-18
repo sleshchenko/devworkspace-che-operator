@@ -14,7 +14,7 @@ name: Docker image build
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
 
 jobs:
   build-push:
@@ -40,6 +40,7 @@ jobs:
         platforms: linux/amd64,linux/ppc64le
         push: true
         tags: quay.io/che-incubator/devworkspace-che-operator:latest
+        tag_with_sha: true
     -
       name: Clear
       run: |

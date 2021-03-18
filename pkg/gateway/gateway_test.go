@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	"github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
-	routeV1 "github.com/openshift/api/route/v1"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
@@ -13,17 +14,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func createTestScheme() *runtime.Scheme {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
 	scheme := runtime.NewScheme()
-	v1alpha1.AddToScheme(scheme)
-	extensions.AddToScheme(scheme)
-	corev1.AddToScheme(scheme)
-	appsv1.AddToScheme(scheme)
-	rbac.AddToScheme(scheme)
-	routeV1.AddToScheme(scheme)
+
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(extensions.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(appsv1.AddToScheme(scheme))
+	utilruntime.Must(rbac.AddToScheme(scheme))
+	utilruntime.Must(routev1.AddToScheme(scheme))
+
 	return scheme
 }
 
