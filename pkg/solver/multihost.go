@@ -17,10 +17,10 @@ import (
 
 	dwoche "github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
 	dw "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	"github.com/devfile/devworkspace-operator/controllers/controller/workspacerouting/solvers"
+	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
 )
 
-func (c *CheRoutingSolver) multihostSpecObjects(cheManager *dwoche.CheManager, routing *dw.WorkspaceRouting, workspaceMeta solvers.WorkspaceMetadata) (solvers.RoutingObjects, error) {
+func (c *CheRoutingSolver) multihostSpecObjects(cheManager *dwoche.CheManager, routing *dw.DevWorkspaceRouting, workspaceMeta solvers.WorkspaceMetadata) (solvers.RoutingObjects, error) {
 	return solvers.RoutingObjects{}, fmt.Errorf("multihost currently not supported")
 }
 
@@ -28,6 +28,6 @@ func (c *CheRoutingSolver) multihostExposedEndpoints(manager *dwoche.CheManager,
 	return nil, false, fmt.Errorf("multihost currently not supported")
 }
 
-func (c *CheRoutingSolver) multihostFinalize(cheManager *dwoche.CheManager, routing *dw.WorkspaceRouting) error {
+func (c *CheRoutingSolver) multihostFinalize(cheManager *dwoche.CheManager, routing *dw.DevWorkspaceRouting) error {
 	return nil
 }

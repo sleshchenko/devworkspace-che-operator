@@ -10,8 +10,9 @@ import (
 	"github.com/che-incubator/devworkspace-che-operator/pkg/manager"
 	dw "github.com/devfile/api/v2/pkg/apis/workspaces/v1alpha2"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	"github.com/devfile/devworkspace-operator/controllers/controller/workspacerouting/solvers"
-	"github.com/devfile/devworkspace-operator/pkg/config"
+	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
+	"github.com/devfile/devworkspace-operator/pkg/constants"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -28,6 +29,8 @@ import (
 )
 
 func createTestScheme() *runtime.Scheme {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
 	scheme := runtime.NewScheme()
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 	utilruntime.Must(extensions.AddToScheme(scheme))
@@ -41,7 +44,7 @@ func createTestScheme() *runtime.Scheme {
 	return scheme
 }
 
-func getSpecObjects(t *testing.T, routing *dwo.WorkspaceRouting) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
+func getSpecObjects(t *testing.T, routing *dwo.DevWorkspaceRouting) (client.Client, solvers.RoutingSolver, solvers.RoutingObjects) {
 	scheme := createTestScheme()
 	cheManager := &v1alpha1.CheManager{
 		ObjectMeta: metav1.ObjectMeta{
@@ -86,13 +89,13 @@ func getSpecObjects(t *testing.T, routing *dwo.WorkspaceRouting) (client.Client,
 	return cl, solver, objs
 }
 
-func simpleWorkspaceRouting() *dwo.WorkspaceRouting {
-	return &dwo.WorkspaceRouting{
+func simpleDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
+	return &dwo.DevWorkspaceRouting{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "routing",
 			Namespace: "ws",
 		},
-		Spec: dwo.WorkspaceRoutingSpec{
+		Spec: dwo.DevWorkspaceRoutingSpec{
 			WorkspaceId:  "wsid",
 			RoutingClass: "che",
 			Endpoints: map[string]dwo.EndpointList{
@@ -124,7 +127,7 @@ func simpleWorkspaceRouting() *dwo.WorkspaceRouting {
 }
 
 func TestCreateObjects(t *testing.T) {
-	cl, _, objs := getSpecObjects(t, simpleWorkspaceRouting())
+	cl, _, objs := getSpecObjects(t, simpleDevWorkspaceRouting())
 
 	t.Run("noIngresses", func(t *testing.T) {
 		if len(objs.Ingresses) != 0 {
@@ -155,7 +158,7 @@ func TestCreateObjects(t *testing.T) {
 				t.Errorf("The namespace of the associated che manager should have been recorded in the service annotation")
 			}
 
-			if svc.Labels[config.WorkspaceIDLabel] != "wsid" {
+			if svc.Labels[constants.WorkspaceIDLabel] != "wsid" {
 				t.Errorf("The workspace ID should be recorded in the service labels")
 			}
 		})
@@ -212,7 +215,7 @@ func TestCreateObjects(t *testing.T) {
 }
 
 func TestReportExposedEndpoints(t *testing.T) {
-	routing := simpleWorkspaceRouting()
+	routing := simpleDevWorkspaceRouting()
 	_, solver, objs := getSpecObjects(t, routing)
 
 	exposed, ready, err := solver.GetExposedEndpoints(routing.Spec.Endpoints, objs)
@@ -263,7 +266,7 @@ func TestReportExposedEndpoints(t *testing.T) {
 }
 
 func TestFinalize(t *testing.T) {
-	routing := simpleWorkspaceRouting()
+	routing := simpleDevWorkspaceRouting()
 	cl, slv, _ := getSpecObjects(t, routing)
 
 	// the create test checks that during the above call, the solver created the 2 traefik configmaps
