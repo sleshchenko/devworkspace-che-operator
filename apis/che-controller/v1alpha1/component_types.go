@@ -19,27 +19,36 @@ import (
 // CheManagerSpec holds the configuration of the Che controller.
 // +k8s:openapi-gen=true
 type CheManagerSpec struct {
-	// GatewayHost is the full host name used to expose workspace endpoints that have relocatable roots.
-	// Mandatory on Kubernetes, optional on OpenShift.
+	// GatewayHost is the full host name used to expose workspace endpoints that support url rewriting reverse proxy.
+	// See the GatewayDisabled attribute for a more detailed description of where and how are workspace endpoints
+	// exposed in various configurations.
+	//
+	// This attribute is mandatory on Kubernetes, optional on OpenShift.
 	GatewayHost string `json:"gatewayHost,omitempty"`
 
-	// GatewayDisabled enables or disables routing of the relocatable workspace compontents through a common gateway.
+	// GatewayDisabled enables or disables routing of the url rewrite supporting workspace endpoints
+	// through a common gateway (the hostname of which is defined by the GatewayHost).
+	//
 	// Default value is "false" meaning that the gateway is enabled.
-	// If disabled, all endpoints are deployed on a subdomain of a WorkspaceComponentBaseDomain. If enabled, components marked
-	// as relocatable are exposed on a unique subpath of the the GatewayHost, while the rest of the workspace components are
-	// exposed on subdomains of the WorkspaceComponentBaseDomain.
+	//
+	// If set to false (i.e. the gateway is enabled), endpoints marked using the "urlRewriteSupported" attribute
+	// are exposed on unique subpaths of the GatewayHost, while the rest of the workspace endpoints are exposed
+	// on subdomains of the RoutingSuffix specified by the DevWorkspaceRouting of the workspace.
+	//
+	// If set to true (i.e. the gateway is disabled), all endpoints are deployed on subdomains of
+	// the RoutingSuffix.
 	GatewayDisabled bool `json:"gatewayDisabled,omitempty"`
 
-	// GatewayImage is the docker image to use for the Che gateway.  This is only used in
-	// the singlehost mode. If not defined in the CR, it is taken from
+	// GatewayImage is the docker image to use for the Che gateway.  This is only used if GatewayDisabled is false.
+	// If not defined in the CR, it is taken from
 	// the `RELATED_IMAGE_gateway` environment variable of the che operator
-	// deployment/pod. If not defined there it defaults to a hardcoded value.
+	// deployment/pod. If not defined there, it defaults to a hardcoded value.
 	GatewayImage string `json:"gatewayImage,omitempty"`
 
-	// GatewayConfigureImage is the docker image to use for the sidecar of the Che gateway that is
-	// used to configure it. This is only used in the singlehost mode. If not defined in the CR,
+	// GatewayConfigurerImage is the docker image to use for the sidecar of the Che gateway that is
+	// used to configure it. This is only used when GatewayDisabled is false. If not defined in the CR,
 	// it is taken from the `RELATED_IMAGE_gateway_configurer` environment variable of the che
-	// operator deployment/pod. If not defined there it defaults to a hardcoded value.
+	// operator deployment/pod. If not defined there, it defaults to a hardcoded value.
 	GatewayConfigurerImage string `json:"gatewayConfigurerImage,omitempty"`
 }
 
