@@ -20,6 +20,8 @@ const (
 	ConfigAnnotationCheManagerNamespace          = configAnnotationPrefix + "che-namespace"
 	ConfigAnnotationDevWorkspaceRoutingName      = configAnnotationPrefix + "devworkspacerouting-name"
 	ConfigAnnotationDevWorkspaceRoutingNamespace = configAnnotationPrefix + "devworkspacerouting-namespace"
+	ConfigAnnotationEndpointName                 = configAnnotationPrefix + "endpoint-name"
+	ConfigAnnotationComponentName                = configAnnotationPrefix + "component-name"
 )
 
 var (

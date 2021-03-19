@@ -40,13 +40,21 @@ var (
 )
 
 func init() {
+	if err := infrastructure.Initialize(); err != nil {
+		setupLog.Error(nil, "unable to detect the Kubernetes infrastructure type", "error", err)
+		os.Exit(1)
+	}
+
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 	utilruntime.Must(controllerv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(extensions.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(rbac.AddToScheme(scheme))
-	utilruntime.Must(routev1.AddToScheme(scheme))
+
+	if infrastructure.IsOpenShift() {
+		utilruntime.Must(routev1.AddToScheme(scheme))
+	}
 }
 
 func main() {
@@ -60,10 +68,6 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
-
-	if err := infrastructure.Initialize(); err != nil {
-		setupLog.Error(nil, "unable to detect the Kubernetes infrastructure type", "error", err)
-	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,

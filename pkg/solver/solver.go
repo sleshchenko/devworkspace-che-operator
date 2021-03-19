@@ -14,13 +14,13 @@ package solver
 
 import (
 	"fmt"
-	"github.com/devfile/devworkspace-operator/pkg/constants"
 	"time"
+
+	"github.com/devfile/devworkspace-operator/pkg/constants"
 
 	"github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/defaults"
 	"github.com/che-incubator/devworkspace-che-operator/pkg/manager"
-	"github.com/che-incubator/devworkspace-che-operator/pkg/util"
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
@@ -128,11 +128,7 @@ func (c *CheRoutingSolver) Finalize(routing *controllerv1alpha1.DevWorkspaceRout
 		return err
 	}
 
-	if util.IsSingleHost(cheManager) {
-		return c.singlehostFinalize(cheManager, routing)
-	}
-
-	return c.multihostFinalize(cheManager, routing)
+	return c.cheRoutingFinalize(cheManager, routing)
 }
 
 // GetSpecObjects constructs cluster routing objects which should be applied on the cluster
@@ -142,11 +138,7 @@ func (c *CheRoutingSolver) GetSpecObjects(routing *controllerv1alpha1.DevWorkspa
 		return solvers.RoutingObjects{}, err
 	}
 
-	if util.IsSingleHost(cheManager) {
-		return c.singlehostSpecObjects(cheManager, routing, workspaceMeta)
-	}
-
-	return c.multihostSpecObjects(cheManager, routing, workspaceMeta)
+	return c.cheSpecObjects(cheManager, routing, workspaceMeta)
 }
 
 // GetExposedEndpoints retreives the URL for each endpoint in a devfile spec from a set of RoutingObjects.
@@ -167,11 +159,7 @@ func (c *CheRoutingSolver) GetExposedEndpoints(endpoints map[string]controllerv1
 		return nil, false, err
 	}
 
-	if util.IsSingleHost(manager) {
-		return c.singlehostExposedEndpoints(manager, workspaceID, endpoints, routingObj)
-	}
-
-	return c.multihostExposedEndpoints(manager, workspaceID, endpoints, routingObj)
+	return c.cheExposedEndpoints(manager, workspaceID, endpoints, routingObj)
 }
 
 func isSupported(routingClass controllerv1alpha1.DevWorkspaceRoutingClass) bool {

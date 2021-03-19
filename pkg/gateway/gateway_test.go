@@ -50,7 +50,7 @@ func TestCreate(t *testing.T) {
 			Namespace: ns,
 		},
 		Spec: v1alpha1.CheManagerSpec{
-			Host: "over.the.rainbow",
+			GatewayHost: "over.the.rainbow",
 		},
 	})
 	if err != nil {
@@ -114,8 +114,8 @@ func TestDelete(t *testing.T) {
 			Namespace: ns,
 		},
 		Spec: v1alpha1.CheManagerSpec{
-			Host:    "over.the.rainbow",
-			Routing: v1alpha1.MultiHost,
+			GatewayHost:     "over.the.rainbow",
+			GatewayDisabled: false,
 		},
 	})
 	if err != nil {
