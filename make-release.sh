@@ -66,6 +66,9 @@ if [[ ! ${VERSION} ]] || [[ ! ${DWO_VERSION} ]]; then
   exit 1	
 fi	
 
+if [[ ${VERSION} ]]; then
+fi
+
 
 # derive bugfix branch from version
 BRANCH=${VERSION#v}	
@@ -135,7 +138,7 @@ if [[ "${BASEBRANCH}" != "${BRANCH}" ]]; then
   bump_version "${NEXT_VERSION_Y}" "${BASEBRANCH}"	
 fi	
 # bump the z digit	
-[[ $VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]] && BASE="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"; NEXT="${BASH_REMATCH[3]}"; (( NEXT=NEXT+1 )) # for VERSION=7.27.1, get BASE=7.27, NEXT=2
+[[ ${VERSION#v} =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]] && BASE="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"; NEXT="${BASH_REMATCH[3]}"; (( NEXT=NEXT+1 )) # for VERSION=7.27.1, get BASE=7.27, NEXT=2
 NEXT_VERSION_Z="${BASE}.${NEXT}-SNAPSHOT"	
 bump_version "${NEXT_VERSION_Z}" "${BRANCH}"
 
