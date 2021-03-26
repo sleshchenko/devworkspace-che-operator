@@ -33,7 +33,7 @@ bump_version () {
   git checkout "${BUMP_BRANCH}"
 
   echo "Updating project version to ${NEXT_VERSION}"
-  echo "${VERSION}" > VERSION
+  echo "${NEXT_VERSION}" > VERSION
   if [[ ! -z $(git status -s) ]]; then # dirty
     git add VERSION
     COMMIT_MSG="[release] Bump to ${NEXT_VERSION} in ${BUMP_BRANCH}"
