@@ -136,7 +136,7 @@ git checkout "${BASEBRANCH}"
 # change VERSION file + commit change into ${BASEBRANCH} branch
 if [[ "${BASEBRANCH}" != "${BRANCH}" ]]; then
   # bump the y digit, if it is a major release
-  [[ $BRANCH =~ ^([0-9]+)\.([0-9]+)\.x ]] && BASE=${BASH_REMATCH[1]}; NEXT=${BASH_REMATCH[2]}; (( NEXT=NEXT+1 )) # for BRANCH=0.1.x, get BASE=0, NEXT=2
+  [[ $BRANCH =~ ^([0-9]+)\.([0-9]+)\.x ]] && BASE=${BASH_REMATCH[1]}; NEXT=${BASH_REMATCH[2]}; (( NEXT=NEXT+1 )) # for BRANCH=7.27.x, get BASE=7, NEXT=28
   NEXT_VERSION_Y="${BASE}.${NEXT}.0-SNAPSHOT"
   bump_version "${NEXT_VERSION_Y}" "${BASEBRANCH}"
 fi
