@@ -3,6 +3,7 @@ package solver
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/che-incubator/devworkspace-che-operator/apis/che-controller/v1alpha1"
@@ -371,7 +372,7 @@ func TestReportRelocatableExposedEndpoints(t *testing.T) {
 	if e3.Name != "e3" {
 		t.Errorf("The third endpoint should have been e3 but is %s", e1.Name)
 	}
-	if e3.Url != "http://over.the.rainbow/wsid/m1/9999/" {
+	if e3.Url != "https://over.the.rainbow/wsid/m1/9999/" {
 		t.Errorf("The e3 endpoint should have the following URL: '%s' but has '%s'.", "https://over.the.rainbow/wsid/m1/9999/", e3.Url)
 	}
 }
@@ -451,5 +452,28 @@ func TestFinalize(t *testing.T) {
 	cm := cms.Items[0]
 	if cm.Name != "che" {
 		t.Fatal("The only configmap left should be the main traefik config, but the configmap has unexpected name")
+	}
+}
+
+func TestEndpointsAlwaysOnSecureProtocolsWhenExposedThroughGateway(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+	routing := relocatableDevWorkspaceRouting()
+	_, slv, objs := getSpecObjects(t, routing)
+
+	exposed, ready, err := slv.GetExposedEndpoints(routing.Spec.Endpoints, objs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ready {
+		t.Errorf("The exposed endpoints should be considered ready.")
+	}
+
+	for _, endpoints := range exposed {
+		for _, endpoint := range endpoints {
+			if !strings.HasPrefix(endpoint.Url, "https://") {
+				t.Errorf("The endpoint %s should be exposed on https.", endpoint.Url)
+			}
+		}
 	}
 }

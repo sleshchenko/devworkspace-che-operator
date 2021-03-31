@@ -50,6 +50,14 @@ var (
 	configMapDiffOpts = cmpopts.IgnoreFields(corev1.ConfigMap{}, "TypeMeta", "ObjectMeta")
 )
 
+// keys are port numbers, values are maps where keys are endpoint names (in case we need more than 1 endpoint for a single port) and values
+// contain info about the intended endpoint scheme and the order in which the port is defined (used for unique naming)
+type portMapping map[int32]map[string]portMappingValue
+type portMappingValue struct {
+	endpointScheme string
+	order          int
+}
+
 func (c *CheRoutingSolver) cheSpecObjects(cheManager *dwoche.CheManager, routing *dwo.DevWorkspaceRouting, workspaceMeta solvers.WorkspaceMetadata) (solvers.RoutingObjects, error) {
 	objs := solvers.RoutingObjects{}
 
@@ -128,23 +136,11 @@ func (c *CheRoutingSolver) cheExposedEndpoints(manager *dwoche.CheManager, works
 				continue
 			}
 
-			var scheme string
-			if endpoint.Protocol == "" {
-				scheme = "http"
-			} else {
-				scheme = string(endpoint.Protocol)
-			}
+			scheme := determineEndpointScheme(!manager.Spec.GatewayDisabled, endpoint)
 
 			if !isExposableScheme(scheme) {
 				// we cannot expose non-http endpoints publicly, because ingresses/routes only support http(s)
 				continue
-			}
-
-			if endpoint.Secure {
-				scheme = secureScheme(scheme)
-
-				// TODO this should also do the magic of ensuring user authentication however we are going to do it
-				// in the future
 			}
 
 			// try to find the endpoint in the ingresses/routes first. If it is there, it is exposed on a subdomain
@@ -207,6 +203,10 @@ func secureScheme(scheme string) string {
 	} else {
 		return scheme
 	}
+}
+
+func isSecureScheme(scheme string) bool {
+	return scheme == "https" || scheme == "wss"
 }
 
 func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheManager *dwoche.CheManager, workspaceID string, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects) ([]corev1.ConfigMap, error) {
@@ -280,9 +280,9 @@ func getTrackedEndpointName(endpoint *dw.Endpoint) string {
 // we need to support unique endpoints - so 1 port can actually be accessible
 // multiple times, each time using a different resulting external URL.
 // non-unique endpoints are all represented using a single external URL
-func classifyEndpoints(gatewayEnabled bool, order *int, endpoints *dwo.EndpointList) (singlehostPorts map[int32]map[string]int, multihostPorts map[int32]map[string]int) {
-	singlehostPorts = map[int32]map[string]int{}
-	multihostPorts = map[int32]map[string]int{}
+func classifyEndpoints(gatewayEnabled bool, order *int, endpoints *dwo.EndpointList) (singlehostPorts portMapping, multihostPorts portMapping) {
+	singlehostPorts = portMapping{}
+	multihostPorts = portMapping{}
 	for _, e := range *endpoints {
 		if e.Exposure != dw.PublicEndpointExposure {
 			continue
@@ -301,11 +301,14 @@ func classifyEndpoints(gatewayEnabled bool, order *int, endpoints *dwo.EndpointL
 		}
 
 		if ports[i] == nil {
-			ports[i] = map[string]int{}
+			ports[i] = map[string]portMappingValue{}
 		}
 
 		if _, ok := ports[i][name]; !ok {
-			ports[i][name] = *order
+			ports[i][name] = portMappingValue{
+				order:          *order,
+				endpointScheme: determineEndpointScheme(gatewayEnabled, e),
+			}
 			*order = *order + 1
 		}
 	}
@@ -313,7 +316,7 @@ func classifyEndpoints(gatewayEnabled bool, order *int, endpoints *dwo.EndpointL
 	return
 }
 
-func addToTraefikConfig(namespace string, workspaceID string, machineName string, portMapping map[int32]map[string]int, cfg *traefikConfig) {
+func addToTraefikConfig(namespace string, workspaceID string, machineName string, portMapping portMapping, cfg *traefikConfig) {
 	rtrs := cfg.HTTP.Routers
 	srvcs := cfg.HTTP.Services
 	mdls := cfg.HTTP.Middlewares
@@ -353,17 +356,17 @@ func addToTraefikConfig(namespace string, workspaceID string, machineName string
 	}
 }
 
-func addToRoutingObjects(cheManager *v1alpha1.CheManager, namespace string, baseDomain string, workspaceID string, machineName string, portMapping map[int32]map[string]int, objs *solvers.RoutingObjects) {
+func addToRoutingObjects(cheManager *v1alpha1.CheManager, namespace string, baseDomain string, workspaceID string, machineName string, portMapping portMapping, objs *solvers.RoutingObjects) {
 	isOpenShift := infrastructure.IsOpenShift()
 
 	for port, names := range portMapping {
 		backingService := findServiceForPort(port, objs)
-		for endpointName, order := range names {
+		for endpointName, val := range names {
 			if isOpenShift {
-				route := getRouteForService(order, machineName, endpointName, port, baseDomain, workspaceID, backingService)
+				route := getRouteForService(val.order, machineName, endpointName, port, val.endpointScheme, baseDomain, workspaceID, backingService)
 				objs.Routes = append(objs.Routes, route)
 			} else {
-				ingress := getIngressForService(order, machineName, endpointName, port, baseDomain, workspaceID, backingService)
+				ingress := getIngressForService(val.order, machineName, endpointName, port, val.endpointScheme, baseDomain, workspaceID, backingService)
 				objs.Ingresses = append(objs.Ingresses, ingress)
 			}
 		}
@@ -471,4 +474,26 @@ func getPublicURLPrefix(workspaceID string, machineName string, port int32, uniq
 		return fmt.Sprintf(endpointURLPrefixPattern, workspaceID, machineName, port)
 	}
 	return fmt.Sprintf(uniqueEndpointURLPrefixPattern, workspaceID, machineName, uniqueEndpointName)
+}
+
+func determineEndpointScheme(gatewayEnabled bool, e dw.Endpoint) string {
+	var scheme string
+	if e.Protocol == "" {
+		scheme = "http"
+	} else {
+		scheme = string(e.Protocol)
+	}
+
+	upgradeToSecure := e.Secure
+
+	// gateway is always on HTTPS, so if the endpoint is served through the gateway, we need to use the TLS'd variant.
+	if gatewayEnabled && e.Attributes.GetString(urlRewriteSupportedEndpointAttributeName, nil) == "true" {
+		upgradeToSecure = true
+	}
+
+	if upgradeToSecure {
+		scheme = secureScheme(scheme)
+	}
+
+	return scheme
 }

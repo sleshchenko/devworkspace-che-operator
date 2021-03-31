@@ -21,9 +21,9 @@ func getEndpointExposingObjectName(machineName string, workspaceID string, port 
 	return fmt.Sprintf("%s-%s-%d-%s", workspaceID, machineName, port, endpointName)
 }
 
-func getRouteForService(order int, machineName string, endpointName string, port int32, baseDomain string, workspaceID string, service *corev1.Service) routeV1.Route {
+func getRouteForService(order int, machineName string, endpointName string, port int32, scheme string, baseDomain string, workspaceID string, service *corev1.Service) routeV1.Route {
 	targetEndpoint := intstr.FromInt(int(port))
-	return routeV1.Route{
+	route := routeV1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getEndpointExposingObjectName(machineName, workspaceID, port, endpointName),
 			Namespace: service.Namespace,
@@ -35,10 +35,6 @@ func getRouteForService(order int, machineName string, endpointName string, port
 		},
 		Spec: routeV1.RouteSpec{
 			Host: hostName(order, workspaceID, baseDomain),
-			TLS: &routeV1.TLSConfig{
-				InsecureEdgeTerminationPolicy: routeV1.InsecureEdgeTerminationPolicyRedirect,
-				Termination:                   routeV1.TLSTerminationEdge,
-			},
 			To: routeV1.RouteTargetReference{
 				Kind: "Service",
 				Name: service.Name,
@@ -48,13 +44,22 @@ func getRouteForService(order int, machineName string, endpointName string, port
 			},
 		},
 	}
+
+	if isSecureScheme(scheme) {
+		route.Spec.TLS = &routeV1.TLSConfig{
+			InsecureEdgeTerminationPolicy: routeV1.InsecureEdgeTerminationPolicyRedirect,
+			Termination:                   routeV1.TLSTerminationEdge,
+		}
+	}
+
+	return route
 }
 
-func getIngressForService(order int, machineName string, endpointName string, port int32, baseDomain string, workspaceID string, service *corev1.Service) v1beta1.Ingress {
+func getIngressForService(order int, machineName string, endpointName string, port int32, scheme string, baseDomain string, workspaceID string, service *corev1.Service) v1beta1.Ingress {
 	targetEndpoint := intstr.FromInt(int(port))
 	hostname := hostName(order, workspaceID, baseDomain)
 	ingressPathType := v1beta1.PathTypeImplementationSpecific
-	return v1beta1.Ingress{
+	ingress := v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getEndpointExposingObjectName(machineName, workspaceID, port, endpointName),
 			Namespace: service.Namespace,
@@ -86,6 +91,12 @@ func getIngressForService(order int, machineName string, endpointName string, po
 			},
 		},
 	}
+
+	if isSecureScheme(scheme) {
+		// TODO implement
+	}
+
+	return ingress
 }
 
 func hostName(order int, workspaceID string, baseDomain string) string {
