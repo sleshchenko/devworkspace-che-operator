@@ -46,8 +46,8 @@ compile: generate fmt vet
 
 ### prepare: Prepares the cluster for running the operator - deploys CRDs, rbac and the service account
 prepare: _mk_temp _platform manifests
-# hiding the definition the variable in an eval makes it only defined once this target has run. 
-# Otherwise it would be evaluated eagerly at the make start regardless of the target run, resulting 
+# hiding the definition the variable in an eval makes it only defined once this target has run.
+# Otherwise it would be evaluated eagerly at the make start regardless of the target run, resulting
 # in a temporary directory being created needlessly.
 	$(eval PREPARE_OUTPUT_DIR := $(shell mktemp -p $(TEMP_DIR) -d))
 	OUTPUT_DIR=$(PREPARE_OUTPUT_DIR) DWCO_GENERATED_OVERLAY=support deploy/generate-deployment.sh --split-yaml
@@ -68,7 +68,7 @@ run_as_current_user: generate fmt vet prepare
 
 debug: generate fmt vet prepare
 	dlv debug --listen=:2345 --headless=true --api-version=2 ./main.go --
-	
+
 ### install: Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 install: _platform generate_deployment
 	$(K8S_CLI) create namespace $(DWCO_NAMESPACE) || true
@@ -89,7 +89,7 @@ generate_deployment: manifests
 
 ### manifests: Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:artifacts:config=deploy/templates/components/crd crd:crdVersions=v1beta1
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:artifacts:config=deploy/templates/components/crd crd:crdVersions=v1
 
 ### fmt: Run go fmt against code
 fmt:
