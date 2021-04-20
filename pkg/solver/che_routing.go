@@ -239,7 +239,7 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheManager *dw
 		},
 	}
 
-	// we just need something to make the route names unique.. We also need to make the names as short as possible while
+	// we just need something to make the route names unique. We also need to make the names as short as possible while
 	// being relatable to the workspaceID by mere human inspection. So let's just suffix the workspaceID with a "unique"
 	// suffix, the easiest of which is the iteration order in the map.
 	// Note that this means that the endpoints might get a different route/ingress name on each workspace start because

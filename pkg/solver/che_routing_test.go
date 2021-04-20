@@ -69,7 +69,6 @@ func getSpecObjects(t *testing.T, routing *dwo.DevWorkspaceRouting) (client.Clie
 		DevWorkspaceId: routing.Spec.DevWorkspaceId,
 		Namespace:      routing.GetNamespace(),
 		PodSelector:    routing.Spec.PodSelector,
-		RoutingSuffix:  routing.Spec.RoutingSuffix,
 	}
 
 	// we need to do 1 round of che manager reconciliation so that the solver gets initialized
@@ -99,7 +98,6 @@ func subdomainDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 		Spec: dwo.DevWorkspaceRoutingSpec{
 			DevWorkspaceId: "wsid",
 			RoutingClass:   "che",
-			RoutingSuffix:  "over.the.rainbow",
 			Endpoints: map[string]dwo.EndpointList{
 				"m1": {
 					{
@@ -137,7 +135,6 @@ func relocatableDevWorkspaceRouting() *dwo.DevWorkspaceRouting {
 		Spec: dwo.DevWorkspaceRoutingSpec{
 			DevWorkspaceId: "wsid",
 			RoutingClass:   "che",
-			RoutingSuffix:  "over.the.rainbow",
 			Endpoints: map[string]dwo.EndpointList{
 				"m1": {
 					{

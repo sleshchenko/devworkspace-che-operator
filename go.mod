@@ -13,3 +13,5 @@ require (
 	sigs.k8s.io/controller-runtime v0.6.3
 	sigs.k8s.io/yaml v1.2.0
 )
+
+replace github.com/devfile/devworkspace-operator v0.2.1-0.20210408131455-c6a22a3a7d8b => github.com/tinakurian/devworkspace-operator v0.0.0-20210420133618-ecc7e209d26c
